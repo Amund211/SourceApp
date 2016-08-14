@@ -12,33 +12,20 @@ def formatSources(formatStyle, language, publicationType, a1FirstName="", a1Last
 	
 	#Setting up the formats
 	tmpHarvardFull = {}
-	tmpSwitchHarvardFull = {}
-	tmpHarvardFull["book"] = [a1LastName + ", ", a1FirstName[:1] + ". ", "& ", a2LastName + ", ", a2FirstName[:1] + ". ", "& ", a3LastName + ", ", a3FirstName[:1] + ". ", publishedYear + ", ", publicationName, ",", " ", publisherName + ", ", publisherLocation]
-	pass
-	tmpSwitchHarvardFull["book"] = [(a1LastName != ""), (a1FirstName != ""), ((a2FirstName != "" or a2LastName != "") and (a3FirstName == "" and a3LastName == "")), (a2LastName != ""), (a2FirstName != ""), (a3FirstName != "" or a3LastName != ""), (a3LastName != ""), (a3FirstName != ""), (publishedYear != "" and (a1FirstName != "" or a1LastName != "")), (publicationName != ""), (a1FirstName != "" or a1LastName != ""), (publicationName != ""),  (publisherName != ""), (publisherLocation != "")]
+	tmpHarvardFull["book"] = [((a1LastName + ", "), (a1LastName != "")), ((a1FirstName[:1] + ". "), (a1FirstName != "")), (("& "), ((a2FirstName != "" or a2LastName != "") and (a3FirstName == "" and a3LastName == ""))), ((a2LastName + ", "), (a2LastName != "")), ((a2FirstName[:1] + ". "), (a2FirstName != "")), (("& "), (a3FirstName != "" or a3LastName != "")), ((a3LastName + ", "), (a3LastName != "")), ((a3FirstName[:1] + ". "), (a3FirstName != "")), ((publishedYear + ", "), (publishedYear != "" and (a1FirstName != "" or a1LastName != ""))), ((publicationName), (publicationName != "")), ((","), (a1FirstName != "" or a1LastName != "")), ((" "), (publicationName != "")), ((publisherName + ", "), (publisherName != "")), ((publisherLocation), (publisherLocation != ""))]
 	#tmpHarvardFull["film"] = 
 	#tmpHarvardFull["journal"] = 
 	#tmpHarvardFull["newspaper"] = 
 	#tmpHarvardFull["webpage"] = 
 	
 	tmpHarvardShort = {}
-	tmpSwitchHarvardShort = {}
 	#Filling in the formats
 	formats = {"harvard" : {"full" : tmpHarvardFull, "short" : tmpHarvardShort}}
-	switches = {"harvard" : {"full" : tmpSwitchHarvardFull, "short" : tmpSwitchHarvardShort}}
-	for k, v in formats.items():
-		for ke, va in formats[k].items():
-			for key, val in formats[k][ke].items():
-				print("assesing formats[{}][{}][{}]".format(k, ke, key))
-				if len(formats[k][ke][key]) != len(switches[k][ke][key]):
-					raise UserWarning("A format and switch table pair was not equally long. (formats[{0}][{1}][{2}], {3} long; switches[{0}][{1}], {4} long.)".format(k, ke, key, len(formats[k][ke][key]), len(switches[k][ke][key])))
-	
 	fullSrc = ""
 	#print(formats[formatStyle]["full"])
-	print(tmpSwitchHarvardFull)
 	for key, val in enumerate(formats[formatStyle]["full"][publicationType]):
-		if switches[formatStyle]["full"][publicationType][key] == True:
-			fullSrc += str(val)
+		if formats[formatStyle]["full"][publicationType][key][1] == True:
+			fullSrc += str(val[0])
 		
 	#To omit an input set it to an empty string
 	#
