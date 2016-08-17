@@ -9,16 +9,22 @@ def getInitials(name):
 		if str(char).isupper():
 			initials += char
 	return initials
-		
 
 
-def formatSources(formatStyle, language, publicationType, a1FirstName="", a1LastName="", a2FirstName="", a2LastName="", a3FirstName="", a3LastName="", pageNumberRange="", publishedYear="", publicationName="", publisherName="", publisherLocation=""):
+def formatDate(rawDate, language):
+	"""Takes tuple (int day, int month, int year) and str language and formats it to a verbose format in the selected language"""
+	formattedDate = "{0} {1} {2}".format(str(rawDate[0]), (languages[language]["monthNames"][rawDate[1]-1], str(rawDate[2])))
+
+
+def formatSources(formatStyle, language, publicationType, a1FirstName="", a1LastName="", a2FirstName="", a2LastName="", a3FirstName="", a3LastName="", pageNumberRange="", publishedYear="", publicationName="", publisherName="", publisherLocation="", publicationURL="", fetchedDate=""):
 	"""Formats source citations"""
 	#Certain inputs are locked to certain values, and will error if they differ
 	#language, formatStyle, publicationType
 	languages = {}
-	languages["norwegian"] = {"pageShort" : "s."}
-	languages["english"] = {"pageShort" : "p."}
+	languages["norwegian"] = {"pageShort" : "s.", "availableFrom" : "Hentet fra: "}
+	languages["english"] = {"pageShort" : "p.", "availableFrom" : "Available from: "}
+	languages["norwegian"]["monthNames"] = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"]
+	languages["english"]["monthNames"] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 	
 	#Setting up the formats
 	tmpHarvardFull = {}
@@ -26,7 +32,7 @@ def formatSources(formatStyle, language, publicationType, a1FirstName="", a1Last
 	#tmpHarvardFull["film"] = 
 	#tmpHarvardFull["journal"] = 
 	#tmpHarvardFull["newspaper"] = 
-	#tmpHarvardFull["webpage"] = 
+	tmpHarvardFull["webpage"] = [*tmpHarvardFull["book"][0:10], ((". "), (publicationName != "")), ((languages[language]["availableFrom"] + publicationURL + ". "), (publicationURL != "")), (("[{}]".format(formatDate(fetchedDate, language))), (fetchedDate != ""))]
 	
 	tmpHarvardShort = {}
 	#Filling in the formats
@@ -42,8 +48,9 @@ def formatSources(formatStyle, language, publicationType, a1FirstName="", a1Last
 	return fullSrc
 
 if __name__ == "__main__":
-	allArgs = ["formatStyle", "language", "publicationType", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation"]
-	givenArgs = ["harvard", "english", "book", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation"]
+	allArgs = ["formatStyle", "language", "publicationType", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
+	givenArgs = ["harvard", "english", "book", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
+	givenArgs = ["harvard", "english", "webpage", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
 	"""
 	for key, val in enumerate(allArgs):
 		argIn = input(str(val) + ": ")
