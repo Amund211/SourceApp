@@ -2,7 +2,7 @@
 from sourceFormat import formatSources
 
 import tkinter
-
+#Placeholder copypasta code
 class sourceApp(tkinter.Tk):
 	def __init__(self,parent):
 		tkinter.Tk.__init__(self,parent)
