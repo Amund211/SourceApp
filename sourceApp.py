@@ -8,7 +8,9 @@ class SourceList(tkinter.Frame):
 	def __init__(self, parent):
 		tkinter.Frame.__init__(self, parent)
 		self.allSources = []
+		self.displaySources = []
 		self.parent = parent
+		self.bind("<<ListboxSelect>>", self.onSelect)
 		self.initialize()
 	
 	def initialize(self):
@@ -25,15 +27,38 @@ class SourceList(tkinter.Frame):
 		
 		self.scrollbar = tkinter.Scrollbar(self)
 		self.scrollbar.grid(row = 1, column = 2, sticky = "NS")
-		
-		
 		self.listbox = tkinter.Listbox(self, yscrollcommand=self.scrollbar.set, height = 10, width = 100)
 		self.listbox.grid(row = 1, column = 1, padx = (10, 10,), pady = (10, 10,))
 		
-		for i in range(100):
-			self.listbox.insert(tkinter.END, "Entry nr. " + str(i))
-		
 		self.scrollbar.config(command = self.listbox.yview)
+	
+	def onSelect(self):
+		#Get a proper formatter, format, and output to sourceView
+		pass
+		
+	def updateList(self):
+		self.displaySources = []
+		#Converting dictionary allSources to list displaySources
+		for dictnum, dict in enumerate(self.allSources):
+			self.displaySources.append([])
+			for kwnum, kw in enumerate(self.allSources[dictnum]):
+				if self.allSources[dictnum][kw] != "":
+					self.displaySources[dictnum].append(self.allSources[dictnum][kw])
+		#Deleting empty entries
+		if len(self.allSources[dictnum]) == 0:
+			del(self.allSources[dictnum])
+			del(self.displaySources[dictnum])
+		#Deleting duplicate entries
+		for dictnum in range(len(self.allSources)-1):
+			if self.allSources[dictnum]==self.allSources[-1]:
+				del(self.allSources[-1])
+				del(self.displaySources[-1])
+				break
+		
+		#Populating the listbox
+		self.listbox.delete(0, tkinter.END)
+		for item in self.displaySources:
+			self.listbox.insert(tkinter.END, item)
 		
 		
 
@@ -112,30 +137,39 @@ class SourceInput(tkinter.Frame):
 		self.populate()
 	
 	def populate(self):
-		self.label1 = tkinter.Label(self.interior, text = "Label 1:")
-		self.label2 = tkinter.Label(self.interior, text = "Label 2:")
-		self.label3 = tkinter.Label(self.interior, text = "Label 3:")
-		self.label4 = tkinter.Label(self.interior, text = "Label 4:")
-		self.label1.grid(column = 1, row = 0, padx = (10, 10), pady = (10, 10))
-		self.label2.grid(column = 1, row = 1, padx = (10, 10), pady = (10, 10))
-		self.label3.grid(column = 1, row = 2, padx = (10, 10), pady = (10, 10))
-		self.label4.grid(column = 1, row = 3, padx = (10, 10), pady = (10, 10))
+		self.varNames = ["a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
+		self.textNames = ["A. 1 First name:", "A. 1 Last name:", "A. 2 First name:", "A. 2 Last name:", "A. 3 First name:", "A. 3 Last name:", "Page number/range:", "Published year:", "Publication name:", "Publisher name:", "Publisher location:", "Publication URL:", "Date fetched:"]
+		if len(self.varNames) != len(self.textNames):
+			raise UserWarning("varNames and textNames table pair was not equally long. (SourceInput.varNames, {0} long; SourceInput.textNames, {1} long.)".format(len(self.varNames), len(self.textNames)))
 		
-		self.entryVar1 = tkinter.StringVar()
-		self.entry1 = tkinter.Entry(self.interior, textvar = self.entryVar1)
-		self.entry1.grid(column = 2, row = 3, padx = (10, 10), pady = (10, 10), sticky = "EW")
-		#for i in range(5, 100):
-		#	tkinter.Entry(self.interior, width = 20).grid(column = 0, row = i, sticky = "EW")
+		#Organize widgets into a dictionary to avoid cluttering the namespace
+		self.texts = {}
+		self.vars = {}
+		self.widgets = {"labels" : {}, "entries" : {}}
+		for k, v in enumerate(self.varNames):
+			self.vars[v] = tkinter.StringVar(self)
+			self.texts[v] = self.textNames[k]
+			self.widgets["labels"][v] = tkinter.Label(self.interior, text = self.texts[v]).grid(column = 0, row = k+1, padx = (10, 10), pady = (10, 10))
+			self.widgets["entries"][v] = tkinter.Entry(self.interior, textvar = self.vars[v]).grid(column = 1, columnspan = 2, row = k+1, padx = (10, 10), pady = (10, 10), sticky = "EW")
 		
-
-		
-		self.interior.columnconfigure(0, weight = 1)
-		self.interior.columnconfigure(2, weight = 4)
+		self.button = tkinter.Button(self.interior, text = "Add source", command = self.addSource)
+		self.button.grid(column = 1, row = len(self.widgets["labels"]) + 1, padx = (10, 10), pady = (10, 10))
+		#self.interior.columnconfigure(0, weight = 1)
+		self.interior.columnconfigure(1, weight = 1)
 		self.interior.columnconfigure(3, weight = 1)
+		#self.interior.columnconfigure(3, weight = 1)
 		self.interior.rowconfigure(0, weight = 1)
-		self.interior.rowconfigure(1, weight = 1)
-		self.interior.rowconfigure(0, weight = 1)
-		self.interior.rowconfigure(100, weight = 1)
+		self.interior.rowconfigure(len(self.widgets["labels"]) + 2, weight = 1)
+	
+	def addSource(self):
+		#Get data from the stringvars, and remove empty inputs
+		self.outputVars = {}
+		for k, v in enumerate(self.vars):
+			if self.vars[v].get() != "":
+				self.outputVars[v] = self.vars[v].get()
+		#Add source to backend list, and update the frontend
+		self.parent.sourceList.allSources.append(self.outputVars)
+		self.parent.sourceList.updateList()
 		
 
 	def _configure_interior(self, event):
@@ -165,27 +199,28 @@ class Application(tkinter.Frame):
 	def initialize(self):
 		self.grid()
 		for r in range(6):
-			self.parent.rowconfigure(r, weight=1)	
+			self.rowconfigure(r, weight=1)	
 		for c in range(5):
-			self.parent.columnconfigure(c, weight=1)
+			self.columnconfigure(c, weight=1)
 
-		#self.Frame1 = tkinter.Frame(self.parent, bg="red")
-		self.Frame1 = SourceList(self.parent)
-		self.Frame1.grid(row = 0, column = 0, rowspan = 3, columnspan = 2, sticky = "WENS")
+		self.sourceList = SourceList(self)
+		self.sourceList.grid(row = 0, column = 0, rowspan = 3, columnspan = 2, sticky = "WENS")
 		
-		#self.Frame2 = tkinter.Frame(self.parent, bg="blue")
-		self.Frame2 = SourceDisplay(self.parent)
-		self.Frame2.grid(row = 3, column = 0, rowspan = 3, columnspan = 2, sticky = "WENS")
+		self.sourceDisplay = SourceDisplay(self)
+		self.sourceDisplay.grid(row = 3, column = 0, rowspan = 3, columnspan = 2, sticky = "WENS")
 		
-		#self.Frame3 = tkinter.Frame(self.parent, bg="green")
-		self.Frame3 = SourceInput(self.parent)
-		self.Frame3.grid(row = 0, column = 2, rowspan = 6, columnspan = 3, sticky = "WENS")
+		self.sourceInput = SourceInput(self)
+		self.sourceInput.grid(row = 0, column = 2, rowspan = 6, columnspan = 3, sticky = "WENS")
 
 if __name__ == "__main__":
 	root = tkinter.Tk()
+	root.columnconfigure(0, weight = 1)
+	root.rowconfigure(0, weight = 1)
 	app = Application(root)
+	app.grid(sticky = "NSEW")
 	root.title("Test layout")
 	#root.geometry(root.geometry())
 	root.update()
 	root.minsize(root.winfo_width(), root.winfo_height())
 	root.mainloop()
+		
