@@ -10,7 +10,7 @@ class SourceList(tkinter.Frame):
 		self.allSources = []
 		self.displaySources = []
 		self.parent = parent
-		self.parent.parent.bind("<<ListboxSelect>>", self.onSelect)
+		self.bind_all("<<ListboxSelect>>", self.onSelect)
 		self.initialize()
 	
 	def initialize(self):
@@ -35,8 +35,8 @@ class SourceList(tkinter.Frame):
 	def onSelect(self, event):
 		#Send selected source from list to sourceDisplay
 		sender = event.widget
-		listIndex = sender.curselection()
-		value = sender.get(listIndex)
+		listIndex = sender.curselection()[0]
+		value = self.allSources[listIndex]
 		self.parent.sourceDisplay.setSource(value)
 	
 	def updateList(self):
@@ -97,7 +97,20 @@ class SourceDisplay(tkinter.Frame):
 	def setSource(self, source):
 		#Create temporary formatter object, and format given source
 		#Lower inputs for formatter, as they are capitalized in the combobox
-		pass
+		formatterKwargs = {}
+		for k, v in enumerate(self.parent.sourceInput.formatterOptions):
+			formatterKwargs[v] = self.parent.sourceInput.formatterOptions[v].get().lower()
+		formatter = Formatter(**formatterKwargs)
+		formattedSource = formatter.formatSource(**source)
+		self.source1.config(state = "normal")
+		self.source1.delete(1.0, tkinter.END)
+		self.source1.insert("insert", formattedSource["short"])
+		self.source1.config(state = "disabled")
+		
+		self.source2.config(state = "normal")
+		self.source2.delete(1.0, tkinter.END)
+		self.source2.insert("insert", formattedSource["full"])
+		self.source2.config(state = "disabled")
 
 
 class SourceInput(tkinter.Frame):
@@ -138,54 +151,52 @@ class SourceInput(tkinter.Frame):
 		self.populate()
 	
 	def populate(self):
-		self.varNames = ["a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
-		self.textNames = ["A. 1 First name:", "A. 1 Last name:", "A. 2 First name:", "A. 2 Last name:", "A. 3 First name:", "A. 3 Last name:", "Page number/range:", "Published year:", "Publication name:", "Publisher name:", "Publisher location:", "Publication URL:", "Date fetched:"]
+		self.varNames = ["formatStyle", "language", "publicationType", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
+		self.textNames = ["Format style:", "Language:", "Publication type:", "A. 1 First name:", "A. 1 Last name:", "A. 2 First name:", "A. 2 Last name:", "A. 3 First name:", "A. 3 Last name:", "Page number/range:", "Published year:", "Publication name:", "Publisher name:", "Publisher location:", "Publication URL:", "Date fetched:"]
 		self.comboboxValues = {"formatStyle" : ["Harvard"], "language" : ["Norwegian", "English"], "publicationType" : ["Book", "Webpage"], "fetchedDay" : list(range(32)), "fetchedMonth" : list(range(13)), "fetchedYear" : [0, *list(range(2016, 2031, 1))]}
 		
 		self.formatterOptions = {}
 		self.formatterOptions["formatStyle"] = tkinter.StringVar()
 		self.formatterOptions["language"] = tkinter.StringVar()
 		self.formatterOptions["publicationType"] = tkinter.StringVar()
-
+		
+		#Debugging
+		for k, v in enumerate(self.formatterOptions):
+			self.formatterOptions[v].set(self.comboboxValues[v][0])
+		#################
 		if len(self.varNames) != len(self.textNames):
 			raise UserWarning("varNames and textNames table pair was not equally long. (SourceInput.varNames, {0} long; SourceInput.textNames, {1} long.)".format(len(self.varNames), len(self.textNames)))
 		
 		#Organize widgets into a dictionary to avoid cluttering the namespace
 		self.texts = {}
 		self.vars = {}
-		self.widgets = {"labels" : {}, "entries" : {}, "comboboxes" : {}, "labels2" : {}}
+		self.widgets = {"labels" : {}, "entries" : {}, "comboboxes" : {}}
 		for k, v in enumerate(self.varNames):
 			if v != "fetchedDate":
-				self.vars[v] = tkinter.StringVar(self)
 				self.texts[v] = self.textNames[k]
-				self.widgets["labels"][v] = tkinter.Label(self.interior, text = self.texts[v]).grid(column = 0, row = k+4, padx = (10, 10), pady = (10, 10))
-				#if k<=2: dont add entry, k+1 instead of k+4
-				#Also add 0,2 label text in texts
-				self.widgets["entries"][v] = tkinter.Entry(self.interior, textvar = self.vars[v]).grid(column = 1, columnspan = 4, row = k+4, padx = (10, 10), pady = (10, 10), sticky = "EW")
+				self.widgets["labels"][v] = tkinter.Label(self.interior, text = self.texts[v]).grid(column = 0, row = k+1, padx = (10, 10), pady = (10, 10))
+				#Do not add entry widget for the formatter options (added later)
+				if k >= 3:
+					self.vars[v] = tkinter.StringVar(self)
+					#Debugging
+					self.vars[v].set(v)
+					###########
+					self.widgets["entries"][v] = tkinter.Entry(self.interior, textvar = self.vars[v]).grid(column = 1, columnspan = 4, row = k+1, padx = (10, 10), pady = (10, 10), sticky = "EW")
+				else:
+					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, textvar = self.formatterOptions[v], values = self.comboboxValues[v], width = 15).grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
 			else:
 				self.vars["fetchedDay"] = tkinter.IntVar(self)
 				self.vars["fetchedMonth"] = tkinter.IntVar(self)
 				self.vars["fetchedYear"] = tkinter.IntVar(self)
 				self.texts[v] = self.textNames[k]
-				self.widgets["entries"][v] = tkinter.Label(self.interior, text = self.texts[v]).grid(column = 0, row = k+4, padx = (10, 0), pady = (10, 10))
-				self.widgets["comboboxes"]["fetchedDay"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedDay"], values = self.comboboxValues["fetchedDay"], width = 2).grid(column = 1, row = k+4, padx = (0, 1), pady = (10, 10), sticky = "E")
-				self.widgets["comboboxes"]["fetchedMonth"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedMonth"], values = self.comboboxValues["fetchedMonth"], width = 2).grid(column = 2, row = k+4, padx = (1, 1), pady = (10, 10), sticky = "W")
-				self.widgets["comboboxes"]["fetchedYear"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedYear"], values = self.comboboxValues["fetchedYear"], width = 4).grid(column = 3, row = k+4, padx = (1, 10), pady = (10, 10), sticky = "W")
+				self.widgets["entries"][v] = tkinter.Label(self.interior, text = self.texts[v]).grid(column = 0, row = k+1, padx = (10, 0), pady = (10, 10))
+				self.widgets["comboboxes"]["fetchedDay"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedDay"], values = self.comboboxValues["fetchedDay"], width = 2).grid(column = 1, row = k+1, padx = (0, 1), pady = (10, 10), sticky = "E")
+				self.widgets["comboboxes"]["fetchedMonth"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedMonth"], values = self.comboboxValues["fetchedMonth"], width = 2).grid(column = 2, row = k+1, padx = (1, 1), pady = (10, 10), sticky = "W")
+				self.widgets["comboboxes"]["fetchedYear"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedYear"], values = self.comboboxValues["fetchedYear"], width = 4).grid(column = 3, row = k+1, padx = (1, 10), pady = (10, 10), sticky = "W")
 		
-		#for k, v in enumerate(self.formatterOptions):
-			self.widgets["labels2"]["formatStyle"] = tkinter.Label(self.interior, text = "Format style:").grid(column = 0, row = 1, padx = (10, 10), pady = (10, 10))
-			self.widgets["comboboxes"]["formatStyle"] = ttk.Combobox(self.interior, textvar = self.formatterOptions["formatStyle"], values = self.comboboxValues["formatStyle"], width = 15).grid(column = 1, row = 1, padx = (10, 10), pady = (10, 10))
-			self.widgets["labels2"]["language"] = tkinter.Label(self.interior, text = "Language:").grid(column = 0, row = 2, padx = (10, 10), pady = (10, 10))
-			self.widgets["comboboxes"]["language"] = ttk.Combobox(self.interior, textvar = self.formatterOptions["language"], values = self.comboboxValues["language"], width = 15).grid(column = 1, row = 2, padx = (10, 10), pady = (10, 10))
-			self.widgets["labels2"]["publicationType"] = tkinter.Label(self.interior, text = "Publication type:").grid(column = 0, row = 3, padx = (10, 10), pady = (10, 10))
-			self.widgets["comboboxes"]["publicationType"] = ttk.Combobox(self.interior, textvar = self.formatterOptions["publicationType"], values = self.comboboxValues["publicationType"], width = 15).grid(column = 1, row = 3, padx = (10, 10), pady = (10, 10))
-
 		self.button = tkinter.Button(self.interior, text = "Add source", command = self.addSource)
 		self.button.grid(column = 1, row = len(self.widgets["labels"]) + 5, padx = (10, 10), pady = (10, 10))
-		#self.interior.columnconfigure(0, weight = 1)
-		#self.interior.columnconfigure(1, weight = 1)
 		self.interior.columnconfigure(4, weight = 1)
-		#self.interior.columnconfigure(3, weight = 1)
 		self.interior.rowconfigure(0, weight = 1)
 		self.interior.rowconfigure(len(self.widgets["labels"]) + 6, weight = 1)
 	
@@ -203,8 +214,11 @@ class SourceInput(tkinter.Frame):
 					tmpDateFetched[2] = self.vars[v].get()
 				else:
 					outputVars[v] = self.vars[v].get()
-		if tmpDateFetched != [0, 0, 0]:
-			outputVars["fetchedDate"] = tuple(tmpDateFetched)
+		if 0 < tmpDateFetched[0] < 32:
+			if 0 < tmpDateFetched[1] < 13:
+				if type(tmpDateFetched[2]) == type(0):
+					outputVars["fetchedDate"] = tuple(tmpDateFetched)
+		#Add else statement to warn the user that input was invalid, and will not be included in the source
 		#Clear input fields
 		for k, v in enumerate(self.vars):
 			if type(self.vars[v]) == type(tkinter.StringVar(self)):

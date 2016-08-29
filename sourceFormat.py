@@ -17,7 +17,16 @@ class Formatter():
 	
 	def _formatDate(self, rawDate):
 		"""Takes tuple (int day, int month, int year) and formats it to a verbose format in the instance's language"""
-		formattedDate = "{0} {1} {2}".format(str(rawDate[0]), self.languages[self.language]["monthNames"][rawDate[1]-1], str(rawDate[2]))
+		if rawDate != "":
+			if not 0 < rawDate[0] < 32:
+				raise UserWarning("Given value for day ({0}) was not valid. (Must be 1->31)".format(rawDate[0]))
+			if not 0 < rawDate[1] < 13:
+				raise UserWarning("Given value for day ({0}) was not valid. (Must be 1->12)".format(rawDate[1]))
+			if not type(rawDate[0]) == type(0):
+				raise UserWarning("Given value for year ({0}) was not valid. (Must be type int)".format(rawDate[2]))
+			formattedDate = "{0} {1} {2}".format(str(rawDate[0]), self.languages[self.language]["monthNames"][rawDate[1]-1], str(rawDate[2]))
+		else:
+			formattedDate = ""
 		return formattedDate
 	
 	def __init__(self, formatStyle, language, publicationType):
