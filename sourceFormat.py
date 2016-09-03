@@ -29,7 +29,7 @@ class Formatter():
 			formattedDate = ""
 		return formattedDate
 	
-	def __init__(self, formatStyle, language, publicationType):
+	def __init__(self, formatStyle="harvard", language="english", publicationType="book"):
 		"""Saves the attributes for the formatter to the instance for referance later"""
 		self.formatStyle = formatStyle
 		self.language = language
