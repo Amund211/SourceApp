@@ -4,6 +4,10 @@ from sourceFormat import Formatter
 import tkinter
 import tkinter.ttk as ttk
 
+borderstyles = ["flat", "sunken", "raised", "groove", "ridge"]
+borderstyle = borderstyles[4]
+borderwidth = 2
+
 class SourceList(tkinter.Frame):
 	def __init__(self, parent):
 		tkinter.Frame.__init__(self, parent)
@@ -14,6 +18,7 @@ class SourceList(tkinter.Frame):
 	
 	def initialize(self):
 		self.grid()
+		self.config(borderwidth = borderwidth, relief = borderstyle)
 		
 		self.columnconfigure(0, weight = 1)
 		self.columnconfigure(1, weight = 0)
@@ -73,6 +78,7 @@ class SourceDisplay(tkinter.Frame):
 	
 	def initialize(self):
 		self.grid()
+		self.config(borderwidth = borderwidth, relief = borderstyle)
 		
 		self.columnconfigure(0, weight = 1)
 		self.rowconfigure(0, weight = 1)
@@ -116,6 +122,9 @@ class SourceInput(tkinter.Frame):
 		self.initialize()
 	
 	def initialize(self):
+		self.grid()
+		self.config(borderwidth = borderwidth, relief = borderstyle)
+		
 		# create a canvas object and a vertical scrollbar for scrolling it
 		self.vscrollbar = tkinter.Scrollbar(self)
 		self.vscrollbar.grid(sticky = "NS", column = 1, row = 0)
@@ -300,6 +309,7 @@ class ErrorWindow(tkinter.Frame):
 		self.parent.maxsize(self.parent.winfo_width(), self.parent.winfo_height())
 
 def displayError(msg):
+	#Move function into class, instanciate class to show message
 	global root1
 	root1 = tkinter.Tk()
 	global errorwindow
