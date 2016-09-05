@@ -155,8 +155,10 @@ class SourceInput(tkinter.Frame):
 	def populate(self):
 		self.varNames = ["formatStyle", "language", "publicationType", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
 		self.textNames = ["Format style:", "Language:", "Publication type:", "A. 1 First name:", "A. 1 Last name:", "A. 2 First name:", "A. 2 Last name:", "A. 3 First name:", "A. 3 Last name:", "Page number/range:", "Published year:", "Publication name:", "Publisher name:", "Publisher location:", "Publication URL:", "Date fetched:"]
+		#Temporary formatter to extract data
 		tmpFormatter = Formatter()
-		tmpFormatter.formatSource()
+		tmpFormatter.formatSource(publicationType = "book")
+		###################
 		self.comboboxValues = {"formatStyle" : list(item.capitalize() for item in tmpFormatter.formats), "language" : list(item.capitalize() for item in tmpFormatter.languages), "publicationType" : list(item.capitalize() for item in tmpFormatter.formats["harvard"]["full"]), "fetchedDay" : list(range(32)), "fetchedMonth" : list(range(13)), "fetchedYear" : [0, *list(range(2016, 2031, 1))]}
 		del(tmpFormatter)
 		
@@ -183,6 +185,14 @@ class SourceInput(tkinter.Frame):
 					self.widgets["entries"][v] = tkinter.Entry(self.interior, textvar = self.vars[v])
 					self.widgets["entries"][v].grid(column = 1, columnspan = 4, row = k+1, padx = (10, 10), pady = (10, 10), sticky = "EW")
 					self.widgets["entries"][v].bind("<MouseWheel>", self._on_mousewheel)
+				elif k == 2:
+					self.vars[v] = tkinter.StringVar(self)
+					#Debugging
+					self.vars[v].set(self.comboboxValues[v][0])
+					##########
+					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, textvar = self.vars[v], values = self.comboboxValues[v], width = 15)
+					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
+
 				else:
 					self.formatterOptions[v] = tkinter.StringVar(self)
 					#Debugging
@@ -228,13 +238,15 @@ class SourceInput(tkinter.Frame):
 					else:
 						outputVars[v] = self.vars[v].get()
 		except tkinter.TclError:
-			displayError("Input for {} was invalid".format(v))
+			#displayError("Input for {} was invalid".format(v))
+			ErrorWindow(tkinter.Tk(), msg = "Input for {} was invalid".format(v))
 		if 0 < tmpDateFetched[0] < 32:
 			if 0 < tmpDateFetched[1] < 13:
 				if type(tmpDateFetched[2]) == type(0):
 					outputVars["fetchedDate"] = tuple(tmpDateFetched)
 				else:
-					displayError("keek")
+					#displayError("err")
+					pass
 		#Add else statement to warn the user that input was invalid, and will not be included in the source
 		#Use scrollto and focus
 		
@@ -290,6 +302,8 @@ class Application(tkinter.Frame):
 		self.sourceInput.grid(row = 0, column = 2, rowspan = 6, columnspan = 3, sticky = "WENS")
 
 class ErrorWindow(tkinter.Frame):
+	#Create errormsg by instanciating this as a child of a Tk instance
+	#ErrorWindow(tkinter.Tk(), msg = "Something went wrong")
 	def __init__(self, parent, msg):
 		tkinter.Frame.__init__(self, parent)
 		self.parent = parent
@@ -299,15 +313,21 @@ class ErrorWindow(tkinter.Frame):
 	def initialize(self):
 		self.grid()
 		self.errormsg = tkinter.Label(self, text = self.msg)
-		self.errormsg.grid(column = 0, row = 0)
+		self.errormsg.grid(column = 0, row = 0, padx = (10, 10), pady = (10, 10))
 		
 		self.okButton = tkinter.Button(self, text = "Ok", command = self.parent.destroy, width = 10)
-		self.okButton.grid(column = 0, row = 1)
+		self.okButton.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 10))
 		self.focus()
 		
+		self.parent.title("Error")
+		self.parent.update()
 		self.parent.minsize(self.parent.winfo_width(), self.parent.winfo_height())
 		self.parent.maxsize(self.parent.winfo_width(), self.parent.winfo_height())
+		#Play error sound
+		
+		self.parent.mainloop()
 
+"""
 def displayError(msg):
 	#Move function into class, instanciate class to show message
 	global root1
@@ -315,6 +335,7 @@ def displayError(msg):
 	global errorwindow
 	errorwindow = ErrorWindow(root1, msg)
 	root1.mainloop()
+"""
 
 def updateFormatter(*args):
 	formatterKwargs = {}

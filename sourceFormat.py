@@ -29,13 +29,12 @@ class Formatter():
 			formattedDate = ""
 		return formattedDate
 	
-	def __init__(self, formatStyle="harvard", language="english", publicationType="book"):
+	def __init__(self, formatStyle="harvard", language="english"):
 		"""Saves the attributes for the formatter to the instance for referance later"""
 		self.formatStyle = formatStyle
 		self.language = language
-		self.publicationType = publicationType
 	
-	def formatSource(self, a1FirstName="", a1LastName="", a2FirstName="", a2LastName="", a3FirstName="", a3LastName="", pageNumberRange="", publishedYear="", publicationName="", publisherName="", publisherLocation="", publicationURL="", fetchedDate=""):
+	def formatSource(self, a1FirstName="", a1LastName="", a2FirstName="", a2LastName="", a3FirstName="", a3LastName="", pageNumberRange="", publishedYear="", publicationName="", publicationType="", publisherName="", publisherLocation="", publicationURL="", fetchedDate=""):
 		"""Formats a source to the instance's standards, based on the inputs to this method"""
 		#Setting up the formats
 		self.formats = {}
@@ -48,31 +47,30 @@ class Formatter():
 		
 		#Concat all enabled strings to an output string
 		self.fullSrc = ""
-		for key, val in enumerate(self.formats[self.formatStyle]["full"][self.publicationType]):
-			if self.formats[self.formatStyle]["full"][self.publicationType][key][1] == True:
+		for key, val in enumerate(self.formats[self.formatStyle]["full"][publicationType]):
+			if self.formats[self.formatStyle]["full"][publicationType][key][1] == True:
 				self.fullSrc += str(val[0])
 		
 		self.shortSrc = ""
-		for key, val in enumerate(self.formats[self.formatStyle]["short"][self.publicationType]):
-			if self.formats[self.formatStyle]["short"][self.publicationType][key][1] == True:
+		for key, val in enumerate(self.formats[self.formatStyle]["short"][publicationType]):
+			if self.formats[self.formatStyle]["short"][publicationType][key][1] == True:
 				self.shortSrc += str(val[0])
 		
 		#return dictionary for full and in text citation
 		return {"full" : self.fullSrc, "short" : self.shortSrc}
 
 if __name__ == "__main__":
-	bookStyle = {"formatStyle" : "harvard", "language" : "english", "publicationType" : "book"}
-	webpageStyle = {"formatStyle" : "harvard", "language" : "english", "publicationType" : "webpage"}
-	argDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
+	formatStyle = {"formatStyle" : "harvard", "language" : "english"}
+	bookDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publicationType" : "book", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
+	webpageDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publicationType" : "webpage", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
 	
-	bookFormatter = Formatter(**bookStyle)
-	bookFormatted = bookFormatter.formatSource(**argDict)
+	formatter = Formatter(**formatStyle)
+	bookFormatted = formatter.formatSource(**bookDict)
 	print("Book: ")
 	print(bookFormatted["full"])
 	print(bookFormatted["short"] + "\n")
 	
-	webpageFormatter = Formatter(**webpageStyle)
-	webpageFormatted = webpageFormatter.formatSource(**argDict)
+	webpageFormatted = formatter.formatSource(**webpageDict)
 	print("Webpage: ")
 	print(webpageFormatted["full"])
 	print(webpageFormatted["short"])
