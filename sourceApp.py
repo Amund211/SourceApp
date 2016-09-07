@@ -47,21 +47,22 @@ class SourceList(tkinter.Frame):
 	def updateList(self):
 		self.displaySources = []
 		#Converting dictionary allSources to list displaySources
-		for dictnum, dict in enumerate(self.allSources):
+		for dictnum, dict in enumerate(self.allSources[:]):
 			self.displaySources.append([])
 			for kwnum, kw in enumerate(self.allSources[dictnum]):
 				if self.allSources[dictnum][kw] != "":
 					self.displaySources[dictnum].append(self.allSources[dictnum][kw])
-		#Deleting empty entries
-		if len(self.allSources[dictnum]) == 0:
-			del(self.allSources[dictnum])
-			del(self.displaySources[dictnum])
-		#Deleting duplicate entries
-		for dictnum in range(len(self.allSources)-1):
+
+		for dictnum in range(len(self.allSources[:])-1):
+			#Deleting duplicate entries
 			if self.allSources[dictnum]==self.allSources[-1]:
 				del(self.allSources[-1])
 				del(self.displaySources[-1])
 				break
+			#Deleting empty entries
+			if len(self.allSources[dictnum]) == 0:
+				del(self.allSources[dictnum])
+				del(self.displaySources[dictnum])
 		
 		#Populating the listbox
 		self.listbox.delete(0, tkinter.END)
@@ -101,8 +102,7 @@ class SourceDisplay(tkinter.Frame):
 		self.source2.grid(column = 0, row = 4, padx = (10, 10), pady = (0, 10))
 	
 	def setSource(self, source):
-		#Format given source
-		#Lower inputs for formatter, as they are capitalized in the combobox
+		#Format given source and display
 		formattedSource = MainFormatter.formatSource(**source)
 		self.source1.config(state = "normal")
 		self.source1.delete(1.0, tkinter.END)
@@ -190,7 +190,7 @@ class SourceInput(tkinter.Frame):
 					#Debugging
 					self.vars[v].set(self.comboboxValues[v][0])
 					##########
-					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, textvar = self.vars[v], values = self.comboboxValues[v], width = 15)
+					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.vars[v], values = self.comboboxValues[v], width = 15)
 					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
 
 				else:
@@ -199,7 +199,7 @@ class SourceInput(tkinter.Frame):
 					self.formatterOptions[v].set(self.comboboxValues[v][0])
 					##########
 					self.formatterOptions[v].trace("w", updateFormatter)
-					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, textvar = self.formatterOptions[v], values = self.comboboxValues[v], width = 15)
+					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.formatterOptions[v], values = self.comboboxValues[v], width = 15)
 					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
 					
 			else:
@@ -235,20 +235,43 @@ class SourceInput(tkinter.Frame):
 						tmpDateFetched[1] = self.vars[v].get()
 					elif v == "fetchedYear":
 						tmpDateFetched[2] = self.vars[v].get()
+					elif v == "publicationType":
+						outputVars[v] = self.vars[v].get().lower()
 					else:
 						outputVars[v] = self.vars[v].get()
 		except tkinter.TclError:
-			#displayError("Input for {} was invalid".format(v))
 			ErrorWindow(tkinter.Tk(), msg = "Input for {} was invalid".format(v))
+			return
 		if 0 < tmpDateFetched[0] < 32:
 			if 0 < tmpDateFetched[1] < 13:
-				if type(tmpDateFetched[2]) == type(0):
+				if type(tmpDateFetched[2]) == int:
 					outputVars["fetchedDate"] = tuple(tmpDateFetched)
 				else:
-					#displayError("err")
-					pass
-		#Add else statement to warn the user that input was invalid, and will not be included in the source
-		#Use scrollto and focus
+					if tmpDateFetched[2] != 0:
+						ErrorWindow(tkinter.Tk(), msg = "Input for fetched year must be type int")
+						return
+			else:
+				if tmpDateFetched[1] != 0:
+					ErrorWindow(tkinter.Tk(), msg = "Input for fetched month must be 1-12")
+					return
+		else:
+			if tmpDateFetched[0] != 0:
+				ErrorWindow(tkinter.Tk(), msg = "Input for fetched day must be 1-31")
+				return
+		
+		if not "publicationType" in outputVars:
+
+			self.canvas.yview_moveto(0)
+			self.widgets["comboboxes"]["publicationType"].focus()
+			ErrorWindow(tkinter.Tk(), msg = "No input given for publication type")
+			return
+		"""
+		elif not outputVars["publicationType"] in [x.lower() for x in self.comboboxValues["publicationType"]]:
+			self.canvas.yview_moveto(0)
+			self.widgets["comboboxes"]["publicationType"].focus()
+			ErrorWindow(tkinter.Tk(), msg = "Invalid input given for publication type")
+			return
+		"""
 		
 		#Clear input fields
 		for k, v in enumerate(self.vars):
@@ -304,10 +327,15 @@ class Application(tkinter.Frame):
 class ErrorWindow(tkinter.Frame):
 	#Create errormsg by instanciating this as a child of a Tk instance
 	#ErrorWindow(tkinter.Tk(), msg = "Something went wrong")
+	ErrorWindows = []
 	def __init__(self, parent, msg):
 		tkinter.Frame.__init__(self, parent)
 		self.parent = parent
 		self.msg = msg
+		for window in self.ErrorWindows:
+			window.destroy()
+			self.ErrorWindows.remove(window)
+		self.ErrorWindows.append(self.parent)
 		self.initialize()
 	
 	def initialize(self):
@@ -327,22 +355,27 @@ class ErrorWindow(tkinter.Frame):
 		
 		self.parent.mainloop()
 
-"""
-def displayError(msg):
-	#Move function into class, instanciate class to show message
-	global root1
-	root1 = tkinter.Tk()
-	global errorwindow
-	errorwindow = ErrorWindow(root1, msg)
-	root1.mainloop()
-"""
-
 def updateFormatter(*args):
 	formatterKwargs = {}
 	for k, v in enumerate(app.sourceInput.formatterOptions):
+		#Check for empty or invalid options
+		"""
+		if not app.sourceInput.formatterOptions[v].get().lower() in [x.lower() for x in app.sourceInput.comboboxValues[v]]:
+			app.sourceInput.canvas.yview_moveto(0)
+			app.sourceInput.widgets["comboboxes"][v].focus()
+			ErrorWindow(tkinter.Tk(), msg = "Invalid input given for " + v)
+			return
+		"""
 		formatterKwargs[v] = app.sourceInput.formatterOptions[v].get().lower()
 	global MainFormatter
 	MainFormatter = Formatter(**formatterKwargs)
+	app.sourceList.updateList()
+
+def closeWindows():
+	for window in ErrorWindow.ErrorWindows:
+		window.destroy()
+		ErrorWindow.ErrorWindows.remove(window)
+	root.destroy()
 
 if __name__ == "__main__":
 	root = tkinter.Tk()
@@ -350,9 +383,9 @@ if __name__ == "__main__":
 	root.rowconfigure(0, weight = 1)
 	app = Application(root)
 	app.grid(sticky = "NSEW")
-	updateFormatter()
 	root.title("Test layout")
-	#root.geometry(root.geometry())
+	root.protocol("WM_DELETE_WINDOW", closeWindows)
 	root.update()
+	updateFormatter()
 	root.minsize(root.winfo_width(), root.winfo_height())
 	root.mainloop()
