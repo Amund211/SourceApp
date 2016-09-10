@@ -1,5 +1,6 @@
 #This project is licensed under the terms of the GNU General Public License v3.0.
 from sourceFormat import Formatter
+import winsound
 
 import tkinter
 import tkinter.ttk as ttk
@@ -21,28 +22,77 @@ class SourceList(tkinter.Frame):
 		self.config(borderwidth = borderwidth, relief = borderstyle)
 		
 		self.columnconfigure(0, weight = 1)
-		self.columnconfigure(1, weight = 0)
-		self.columnconfigure(2, weight = 0)
-		self.columnconfigure(3, weight = 1)
+		self.columnconfigure(7, weight = 1)
 		
 		self.rowconfigure(0, weight = 1)
-		self.rowconfigure(1, weight = 0)
-		self.rowconfigure(2, weight = 1)
+		self.rowconfigure(3, weight = 1)
 		
 		self.scrollbar = tkinter.Scrollbar(self)
-		self.scrollbar.grid(row = 1, column = 2, sticky = "NS")
+		self.scrollbar.grid(row = 1, column = 6, sticky = "NS")
+		
 		self.listbox = tkinter.Listbox(self, yscrollcommand=self.scrollbar.set, height = 10, width = 100)#, selectmode = tkinter.SINGLE #idk
-		self.listbox.grid(row = 1, column = 1, padx = (10, 10,), pady = (10, 10,))
+		self.listbox.grid(row = 1, column = 1, columnspan = 5, padx = (10, 10), pady = (10, 10))
 		self.listbox.bind("<<ListboxSelect>>", self.onSelect)
+		self.listbox.bind("<Double-1>", self.editEntry)
 		
 		self.scrollbar.config(command = self.listbox.yview)
+		
+		self.copyButton = tkinter.Button(self, text = "Copy", command = self.copyEntries)
+		self.copyButton.grid(column = 2, row = 2, padx = (5, 5), pady = (2, 10), sticky = "E")
+		
+		self.editButton = tkinter.Button(self, text = "Edit", command = self.editEntry)
+		self.editButton.grid(column = 3, row = 2, padx = (5, 5), pady = (2, 10), sticky = "")
+		
+		self.deleteButton = tkinter.Button(self, text = "Delete", command = self.deleteEntry)
+		self.deleteButton.grid(column = 4, row = 2, padx = (5, 5), pady = (2, 10), sticky = "W")
+	
+	def copyEntries(self):
+		sourceListOutput = ""
+		for source in self.allSources:
+			sourceListOutput += MainFormatter.formatSource(**source)["full"] + "\n"
+		self.clipboard_clear()
+		self.clipboard_append(sourceListOutput)
+	
+	def editEntry(self, *args):
+		try:
+			listIndex = self.listbox.curselection()[0]
+			for key in self.parent.sourceInput.vars:
+				try:
+					if key == "fetchedDay":
+						self.parent.sourceInput.vars[key].set(self.allSources[listIndex]["fetchedDate"][0])
+					elif key == "fetchedMonth":
+						self.parent.sourceInput.vars[key].set(self.allSources[listIndex]["fetchedDate"][1])
+					elif key == "fetchedYear":
+						self.parent.sourceInput.vars[key].set(self.allSources[listIndex]["fetchedDate"][2])
+					elif key == "publicationType":
+						self.parent.sourceInput.vars[key].set(self.allSources[listIndex][key].capitalize())
+					else:
+						self.parent.sourceInput.vars[key].set(self.allSources[listIndex][key])
+				except (IndexError, KeyError):
+					pass
+			del self.allSources[listIndex]
+			self.updateList()
+		except IndexError:
+			ErrorWindow(tkinter.Tk(), msg = "No entry selected")
+	
+	def deleteEntry(self):
+		try:
+			listIndex = self.listbox.curselection()[0]
+			del self.allSources[listIndex]
+			self.updateList()
+		except IndexError:
+			ErrorWindow(tkinter.Tk(), msg = "No entry selected")
+		
 	
 	def onSelect(self, event):
 		#Send selected source from list to sourceDisplay
 		sender = event.widget
-		listIndex = sender.curselection()[0]
-		value = self.allSources[listIndex]
-		self.parent.sourceDisplay.setSource(value)
+		try:
+			listIndex = sender.curselection()[0]
+			value = self.allSources[listIndex]
+			self.parent.sourceDisplay.setSource(value)
+		except IndexError:
+			pass
 	
 	def updateList(self):
 		self.displaySources = []
@@ -83,7 +133,7 @@ class SourceDisplay(tkinter.Frame):
 		
 		self.columnconfigure(0, weight = 1)
 		self.rowconfigure(0, weight = 1)
-		self.rowconfigure(5, weight = 1)
+		self.rowconfigure(6, weight = 1)
 		
 		self.label1 = tkinter.Label(self, text="In text citation:")
 		self.label1.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 0))
@@ -93,13 +143,20 @@ class SourceDisplay(tkinter.Frame):
 		self.source1.config(state = "disabled")
 		self.source1.grid(column = 0, row = 2, padx = (10, 10), pady = (0, 10))
 		
+		self.copyButton = tkinter.Button(self, text = "Copy", command = self.copyShort)
+		self.copyButton.grid(column = 0, row = 3)
+		
 		self.label2 = tkinter.Label(self, text="Citation list entry:")
-		self.label2.grid(column= 0, row=3, padx = (10, 10), pady = (10, 0))
+		self.label2.grid(column= 0, row=4, padx = (10, 10), pady = (10, 0))
 		
 		self.source2 = tkinter.Text(self, height = 4, width = 75)
 		self.source2.insert("insert", "a1LastName, FN. a2LastName, FN. & a3LastName, FN. publishedYear, publicationName, publisherName, publisherLocation")
 		self.source2.config(state = "disabled")
-		self.source2.grid(column = 0, row = 4, padx = (10, 10), pady = (0, 10))
+		self.source2.grid(column = 0, row = 5, padx = (10, 10), pady = (0, 10))
+	
+	def copyShort(self):
+		self.clipboard_clear()
+		self.clipboard_append(self.source1.get("1.0", "end")[:-1])
 	
 	def setSource(self, source):
 		#Format given source and display
@@ -124,6 +181,9 @@ class SourceInput(tkinter.Frame):
 	def initialize(self):
 		self.grid()
 		self.config(borderwidth = borderwidth, relief = borderstyle)
+		
+		#Bind enter to add source
+		self.bind_all("<Return>", self.addSource)
 		
 		# create a canvas object and a vertical scrollbar for scrolling it
 		self.vscrollbar = tkinter.Scrollbar(self)
@@ -159,7 +219,7 @@ class SourceInput(tkinter.Frame):
 		tmpFormatter = Formatter()
 		tmpFormatter.formatSource(publicationType = "book")
 		###################
-		self.comboboxValues = {"formatStyle" : list(item.capitalize() for item in tmpFormatter.formats), "language" : list(item.capitalize() for item in tmpFormatter.languages), "publicationType" : list(item.capitalize() for item in tmpFormatter.formats["harvard"]["full"]), "fetchedDay" : list(range(32)), "fetchedMonth" : list(range(13)), "fetchedYear" : [0, *list(range(2016, 2031, 1))]}
+		self.comboboxValues = {"formatStyle" : sorted(list(item.capitalize() for item in tmpFormatter.formats)), "language" : sorted(list(item.capitalize() for item in tmpFormatter.languages)), "publicationType" : sorted(list(item.capitalize() for item in tmpFormatter.formats["harvard"]["full"])), "fetchedDay" : list(range(32)), "fetchedMonth" : list(range(13)), "fetchedYear" : [0, *list(range(2016, 2031, 1))]}
 		del(tmpFormatter)
 		
 		if len(self.varNames) != len(self.textNames):
@@ -180,7 +240,7 @@ class SourceInput(tkinter.Frame):
 				if k >= 3:
 					self.vars[v] = tkinter.StringVar(self)
 					#Debugging
-					self.vars[v].set(v)
+					#self.vars[v].set(v)
 					##########
 					self.widgets["entries"][v] = tkinter.Entry(self.interior, textvar = self.vars[v])
 					self.widgets["entries"][v].grid(column = 1, columnspan = 4, row = k+1, padx = (10, 10), pady = (10, 10), sticky = "EW")
@@ -188,7 +248,7 @@ class SourceInput(tkinter.Frame):
 				elif k == 2:
 					self.vars[v] = tkinter.StringVar(self)
 					#Debugging
-					self.vars[v].set(self.comboboxValues[v][0])
+					#self.vars[v].set(self.comboboxValues[v][0])
 					##########
 					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.vars[v], values = self.comboboxValues[v], width = 15)
 					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
@@ -196,9 +256,8 @@ class SourceInput(tkinter.Frame):
 				else:
 					self.formatterOptions[v] = tkinter.StringVar(self)
 					#Debugging
-					self.formatterOptions[v].set(self.comboboxValues[v][0])
+					#self.formatterOptions[v].set(self.comboboxValues[v][0])
 					##########
-					self.formatterOptions[v].trace("w", updateFormatter)
 					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.formatterOptions[v], values = self.comboboxValues[v], width = 15)
 					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
 					
@@ -221,8 +280,15 @@ class SourceInput(tkinter.Frame):
 		self.interior.columnconfigure(4, weight = 1)
 		self.interior.rowconfigure(0, weight = 1)
 		self.interior.rowconfigure(len(self.widgets["labels"]) + 6, weight = 1)
+		
+		#Default values for the formatter
+		self.formatterOptions["language"].set("Norwegian")
+		self.formatterOptions["formatStyle"].set("Harvard")
+		#Set trace
+		self.formatterOptions["language"].trace("w", updateFormatter)
+		self.formatterOptions["formatStyle"].trace("w", updateFormatter)
 	
-	def addSource(self):
+	def addSource(self, *args):
 		#Get data from the stringvars, and remove empty inputs
 		outputVars = {}
 		tmpDateFetched = [0, 0, 0]
@@ -244,34 +310,23 @@ class SourceInput(tkinter.Frame):
 			return
 		if 0 < tmpDateFetched[0] < 32:
 			if 0 < tmpDateFetched[1] < 13:
-				if type(tmpDateFetched[2]) == int:
+				if tmpDateFetched[2] != 0:
 					outputVars["fetchedDate"] = tuple(tmpDateFetched)
-				else:
-					if tmpDateFetched[2] != 0:
-						ErrorWindow(tkinter.Tk(), msg = "Input for fetched year must be type int")
-						return
-			else:
-				if tmpDateFetched[1] != 0:
-					ErrorWindow(tkinter.Tk(), msg = "Input for fetched month must be 1-12")
+				elif tmpDateFetched[2] != 0:
+					ErrorWindow(tkinter.Tk(), msg = "Input for fetched year must be type int")
 					return
-		else:
-			if tmpDateFetched[0] != 0:
-				ErrorWindow(tkinter.Tk(), msg = "Input for fetched day must be 1-31")
+			elif tmpDateFetched[1] != 0:
+				ErrorWindow(tkinter.Tk(), msg = "Input for fetched month must be 1-12")
 				return
+		elif tmpDateFetched[0] != 0:
+			ErrorWindow(tkinter.Tk(), msg = "Input for fetched day must be 1-31")
+			return
 		
 		if not "publicationType" in outputVars:
-
 			self.canvas.yview_moveto(0)
 			self.widgets["comboboxes"]["publicationType"].focus()
 			ErrorWindow(tkinter.Tk(), msg = "No input given for publication type")
 			return
-		"""
-		elif not outputVars["publicationType"] in [x.lower() for x in self.comboboxValues["publicationType"]]:
-			self.canvas.yview_moveto(0)
-			self.widgets["comboboxes"]["publicationType"].focus()
-			ErrorWindow(tkinter.Tk(), msg = "Invalid input given for publication type")
-			return
-		"""
 		
 		#Clear input fields
 		for k, v in enumerate(self.vars):
@@ -336,36 +391,48 @@ class ErrorWindow(tkinter.Frame):
 			window.destroy()
 			self.ErrorWindows.remove(window)
 		self.ErrorWindows.append(self.parent)
-		self.initialize()
+		self.parent.protocol("WM_DELETE_WINDOW", self.close)
+		#Prevents an errorchain when closing application after opening errormessages too quickly
+		try:
+			self.initialize()
+		except tkinter.TclError:
+			pass
 	
 	def initialize(self):
+		self.parent.columnconfigure(0, weight = 1)
+		self.parent.rowconfigure(0, weight = 1)
 		self.grid()
 		self.errormsg = tkinter.Label(self, text = self.msg)
 		self.errormsg.grid(column = 0, row = 0, padx = (10, 10), pady = (10, 10))
 		
-		self.okButton = tkinter.Button(self, text = "Ok", command = self.parent.destroy, width = 10)
+		self.okButton = tkinter.Button(self, text = "Ok", command = self.close, width = 10)
 		self.okButton.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 10))
-		self.focus()
+		#self.parent.focus()
+		self.parent.wm_attributes("-topmost", True)
+		
+		#self.parent.focus_force()
+		#self.parent.focus()
+		#self.okButton.focus()
 		
 		self.parent.title("Error")
+		self.parent.minsize(200, 0)
 		self.parent.update()
-		self.parent.minsize(self.parent.winfo_width(), self.parent.winfo_height())
-		self.parent.maxsize(self.parent.winfo_width(), self.parent.winfo_height())
+		#self.parent.minsize(self.parent.winfo_width(), self.parent.winfo_height())
+		#self.parent.maxsize(self.parent.winfo_width(), self.parent.winfo_height())
+		self.parent.resizable(False, False)
+		
 		#Play error sound
+		winsound.MessageBeep()
 		
 		self.parent.mainloop()
+	
+	def close(self):
+		self.ErrorWindows.remove(self.parent)
+		self.parent.destroy()
 
 def updateFormatter(*args):
 	formatterKwargs = {}
 	for k, v in enumerate(app.sourceInput.formatterOptions):
-		#Check for empty or invalid options
-		"""
-		if not app.sourceInput.formatterOptions[v].get().lower() in [x.lower() for x in app.sourceInput.comboboxValues[v]]:
-			app.sourceInput.canvas.yview_moveto(0)
-			app.sourceInput.widgets["comboboxes"][v].focus()
-			ErrorWindow(tkinter.Tk(), msg = "Invalid input given for " + v)
-			return
-		"""
 		formatterKwargs[v] = app.sourceInput.formatterOptions[v].get().lower()
 	global MainFormatter
 	MainFormatter = Formatter(**formatterKwargs)
@@ -383,9 +450,10 @@ if __name__ == "__main__":
 	root.rowconfigure(0, weight = 1)
 	app = Application(root)
 	app.grid(sticky = "NSEW")
-	root.title("Test layout")
+	root.title("Source Formatting")
 	root.protocol("WM_DELETE_WINDOW", closeWindows)
 	root.update()
 	updateFormatter()
 	root.minsize(root.winfo_width(), root.winfo_height())
+	#root.iconify()
 	root.mainloop()
