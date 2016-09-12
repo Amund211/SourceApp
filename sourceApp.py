@@ -48,6 +48,9 @@ class SourceList(tkinter.Frame):
 	
 	def copyEntries(self):
 		sourceListOutput = ""
+		if len(self.allSources) == 0:
+			ErrorWindow(tkinter.Tk(), msg = "List is empty")
+			return
 		for source in self.allSources:
 			sourceListOutput += MainFormatter.formatSource(**source)["full"] + "\n"
 		self.clipboard_clear()
@@ -139,7 +142,7 @@ class SourceDisplay(tkinter.Frame):
 		self.label1.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 0))
 		
 		self.source1 = tkinter.Text(self, height = 1, width = 50)
-		self.source1.insert("insert", "(a1LastName, a2LastName & a3LastName publishedYear)")
+		#self.source1.insert("insert", "(a1LastName, a2LastName & a3LastName publishedYear)")
 		self.source1.config(state = "disabled")
 		self.source1.grid(column = 0, row = 2, padx = (10, 10), pady = (0, 10))
 		
@@ -150,7 +153,7 @@ class SourceDisplay(tkinter.Frame):
 		self.label2.grid(column= 0, row=4, padx = (10, 10), pady = (10, 0))
 		
 		self.source2 = tkinter.Text(self, height = 4, width = 75)
-		self.source2.insert("insert", "a1LastName, FN. a2LastName, FN. & a3LastName, FN. publishedYear, publicationName, publisherName, publisherLocation")
+		#self.source2.insert("insert", "a1LastName, FN. a2LastName, FN. & a3LastName, FN. publishedYear, publicationName, publisherName, publisherLocation")
 		self.source2.config(state = "disabled")
 		self.source2.grid(column = 0, row = 5, padx = (10, 10), pady = (0, 10))
 	
@@ -407,23 +410,18 @@ class ErrorWindow(tkinter.Frame):
 		
 		self.okButton = tkinter.Button(self, text = "Ok", command = self.close, width = 10)
 		self.okButton.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 10))
-		#self.parent.focus()
 		self.parent.wm_attributes("-topmost", True)
-		
-		#self.parent.focus_force()
-		#self.parent.focus()
-		#self.okButton.focus()
 		
 		self.parent.title("Error")
 		self.parent.minsize(200, 0)
 		self.parent.update()
-		#self.parent.minsize(self.parent.winfo_width(), self.parent.winfo_height())
-		#self.parent.maxsize(self.parent.winfo_width(), self.parent.winfo_height())
 		self.parent.resizable(False, False)
+		self.parent.grab_set()
 		
 		#Play error sound
 		winsound.MessageBeep()
 		
+		#root.wait_window(self.parent)
 		self.parent.mainloop()
 	
 	def close(self):
