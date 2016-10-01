@@ -7,6 +7,14 @@ class Formatter():
 	languages["norwegian"]["monthNames"] = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"]
 	languages["english"]["monthNames"] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 	
+	#Dictionary of lists of valid inputs for the formatter instance and the source
+	validInputs = {}
+	#Gets info from the dictionary defined above
+	validInputs["language"] = sorted([item for item in languages])
+	validInputs["publicationType"] = sorted(["book", "webpage"])
+	validInputs["formatStyle"] = sorted(["harvard"])
+	
+	
 	def _getInitials(self, name):
 		"""Gets all capital letters in a string, this is to avoid special names/titles like "van" to be able to interfere."""
 		initials = ""
@@ -37,34 +45,61 @@ class Formatter():
 	def formatSource(self, a1FirstName="", a1LastName="", a2FirstName="", a2LastName="", a3FirstName="", a3LastName="", pageNumberRange="", publishedYear="", publicationName="", publicationType="", publisherName="", publisherLocation="", publicationURL="", fetchedDate=""):
 		"""Formats a source to the instance's standards, based on the inputs to this method"""
 		#Setting up the formats
-		self.formats = {}
-		self.formats["harvard"] = {"full" : {}, "short" : {}}
-		self.formats["harvard"]["full"]["book"] = [((a1LastName + ", "), (a1LastName != "")), ((self._getInitials(a1FirstName) + ". "), (a1FirstName != "")), (("& "), ((a2FirstName != "" or a2LastName != "") and (a3FirstName == "" and a3LastName == ""))), ((a2LastName + ", "), (a2LastName != "")), ((self._getInitials(a2FirstName) + ". "), (a2FirstName != "")), (("& "), (a3FirstName != "" or a3LastName != "")), ((a3LastName + ", "), (a3LastName != "")), ((self._getInitials(a3FirstName) + ". "), (a3FirstName != "")), ((publishedYear + ", "), (publishedYear != "" and (a1FirstName != "" or a1LastName != ""))), ((publicationName), (publicationName != "")), ((","), (a1FirstName != "" or a1LastName != "") and (publisherLocation != "" or publisherName != "")), ((" "), (publicationName != "") and (publisherLocation != "" or publisherName != "")), ((publisherName), (publisherName != "")), ((", " + publisherLocation), (publisherLocation != ""))]
-		self.formats["harvard"]["full"]["webpage"] = [*self.formats["harvard"]["full"]["book"][0:10], ((". "), (publicationName != "")), ((self.languages[self.language]["availableFrom"] + publicationURL + ". "), (publicationURL != "")), (("[{}]".format(self._formatDate(fetchedDate))), (fetchedDate != ""))]
-		
-		self.formats["harvard"]["short"]["book"] = [(("("), (True)), ((a1LastName), (a1LastName != "")), ((", "), (a3LastName != "")), ((" & "), (a2LastName != "" and a3LastName == "")), ((a2LastName), (a2LastName != "")), ((" & "), (a3LastName != "")), ((a3LastName), (a3LastName != "")), ((publicationName), (a1LastName == "")), ((" " + publishedYear), (publishedYear != "")), ((")"), (True))]
-		self.formats["harvard"]["short"]["webpage"] = [*self.formats["harvard"]["short"]["book"][0:9], (" " + (self.languages[self.language]["noDate"]), (publishedYear == "")), ((")"), (True))]
-		
+		templates = {}
+		if self.formatStyle == "harvard":
+			templates["AuthorNames"] = [
+			((a1LastName + ", "), (a1LastName != "")), ((self._getInitials(a1FirstName) + ". "), (a1FirstName != "")),
+			(("& "), ((a2FirstName != "" or a2LastName != "") and (a3FirstName == "" and a3LastName == ""))),
+			((a2LastName + ", "), (a2LastName != "")), ((self._getInitials(a2FirstName) + ". "), (a2FirstName != "")),
+			(("& "), (a3FirstName != "" or a3LastName != "")),
+			((a3LastName + ", "), (a3LastName != "")), ((self._getInitials(a3FirstName) + ". "), (a3FirstName != ""))]
+			
+			templates["AuthorLastNames"] = [
+			((a1LastName), (a1LastName != "")), ((", "), (a3LastName != "")),
+			((" & "), (a2LastName != "" and a3LastName == "")), ((a2LastName), (a2LastName != "")),
+			((" & "), (a3LastName != "")), ((a3LastName), (a3LastName != ""))]
+			
+			templates["pubYear_pubName"] = ((publishedYear + ", "), (publishedYear != "" and (a1FirstName != "" or a1LastName != ""))), ((publicationName), (publicationName != ""))
+			
+			if publicationType == "book":
+				fullFormat = [*templates["AuthorNames"], *templates["pubYear_pubName"], ((","), (a1FirstName != "" or a1LastName != "") and (publisherLocation != "" or publisherName != "")), ((" "), (publicationName != "") and (publisherLocation != "" or publisherName != "")), ((publisherName), (publisherName != "")), ((", " + publisherLocation), (publisherLocation != ""))]
+				shortFormat = [(("("), (True)), *templates["AuthorLastNames"],((publicationName), (a1LastName == "")), ((" " + publishedYear), (publishedYear != "")), ((")"), (True))]
+			elif publicationType == "webpage":
+				fullFormat = [*templates["AuthorNames"], *templates["pubYear_pubName"], ((". "), (publicationName != "")), ((self.languages[self.language]["availableFrom"] + publicationURL + ". "), (publicationURL != "")), (("[{}]".format(self._formatDate(fetchedDate))), (fetchedDate != ""))]
+				shortFormat = [(("("), (True)), *templates["AuthorLastNames"],((publicationName), (a1LastName == "")), ((" " + publishedYear), (publishedYear != "")), (" " + (self.languages[self.language]["noDate"]), (publishedYear == "")), ((")"), (True))]
+
 		#Concat all enabled strings to an output string
-		self.fullSrc = ""
-		for key, val in enumerate(self.formats[self.formatStyle]["full"][publicationType]):
-			if self.formats[self.formatStyle]["full"][publicationType][key][1] == True:
-				self.fullSrc += str(val[0])
+		fullSrc = ""
+		for key, val in enumerate(fullFormat):
+			if fullFormat[key][1] == True:
+				fullSrc += str(val[0])
 		
-		self.shortSrc = ""
-		for key, val in enumerate(self.formats[self.formatStyle]["short"][publicationType]):
-			if self.formats[self.formatStyle]["short"][publicationType][key][1] == True:
-				self.shortSrc += str(val[0])
-		
+		shortSrc = ""
+		for key, val in enumerate(shortFormat):
+			if shortFormat[key][1] == True:
+				shortSrc += str(val[0])
 		#return dictionary for full and in text citation
-		return {"full" : self.fullSrc, "short" : self.shortSrc}
+		return {"full" : fullSrc, "short" : shortSrc}
 
 if __name__ == "__main__":
 	formatStyle = {"formatStyle" : "harvard", "language" : "english"}
-	bookDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publicationType" : "book", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
-	webpageDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publicationType" : "webpage", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
-	
 	formatter = Formatter(**formatStyle)
+	
+	import inspect
+	allArgs = list(inspect.getargspec(formatter.formatSource)[0])
+	allArgs.remove("self")
+	#print(allArgs, len(allArgs))
+	
+	bookDict = {key:key for key in allArgs}
+	webpageDict = dict(bookDict)
+	
+	bookDict["publicationType"] = "book"
+	bookDict["fetchedDate"] = ""
+	webpageDict["publicationType"] = "webpage"
+	webpageDict["fetchedDate"] = (1,2,2003)
+	#bookDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publicationType" : "book", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
+	#webpageDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publicationType" : "webpage", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
+	
 	bookFormatted = formatter.formatSource(**bookDict)
 	print("Book: ")
 	print(bookFormatted["full"])
@@ -74,5 +109,3 @@ if __name__ == "__main__":
 	print("Webpage: ")
 	print(webpageFormatted["full"])
 	print(webpageFormatted["short"])
-
-

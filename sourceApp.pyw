@@ -218,12 +218,7 @@ class SourceInput(tkinter.Frame):
 	def populate(self):
 		self.varNames = ["formatStyle", "language", "publicationType", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
 		self.textNames = ["Format style:", "Language:", "Publication type:", "A. 1 First name:", "A. 1 Last name:", "A. 2 First name:", "A. 2 Last name:", "A. 3 First name:", "A. 3 Last name:", "Page number/range:", "Published year:", "Publication name:", "Publisher name:", "Publisher location:", "Publication URL:", "Date fetched:"]
-		#Temporary formatter to extract data
-		tmpFormatter = Formatter()
-		tmpFormatter.formatSource(publicationType = "book")
-		###################
-		self.comboboxValues = {"formatStyle" : sorted(list(item.capitalize() for item in tmpFormatter.formats)), "language" : sorted(list(item.capitalize() for item in tmpFormatter.languages)), "publicationType" : sorted(list(item.capitalize() for item in tmpFormatter.formats["harvard"]["full"])), "fetchedDay" : list(range(32)), "fetchedMonth" : list(range(13)), "fetchedYear" : [0, *list(range(2016, 2031, 1))]}
-		del(tmpFormatter)
+		self.comboboxValues = {"formatStyle" : [value.capitalize() for value in Formatter.validInputs["formatStyle"]], "language" : [value.capitalize() for value in Formatter.validInputs["language"]], "publicationType" : [value.capitalize() for value in Formatter.validInputs["publicationType"]], "fetchedDay" : list(range(32)), "fetchedMonth" : list(range(13)), "fetchedYear" : [0, *list(range(2016, 2031, 1))]}
 		
 		if len(self.varNames) != len(self.textNames):
 			raise UserWarning("varNames and textNames table pair was not equally long. (SourceInput.varNames, {0} long; SourceInput.textNames, {1} long.)".format(len(self.varNames), len(self.textNames)))
@@ -395,11 +390,9 @@ class ErrorWindow(tkinter.Frame):
 			self.ErrorWindows.remove(window)
 		self.ErrorWindows.append(self.parent)
 		self.parent.protocol("WM_DELETE_WINDOW", self.close)
+		self.parent.bind("<Return>", self.close)
 		#Prevents an errorchain when closing application after opening errormessages too quickly
-		try:
-			self.initialize()
-		except tkinter.TclError:
-			pass
+		self.initialize()
 	
 	def initialize(self):
 		self.parent.columnconfigure(0, weight = 1)
@@ -414,9 +407,9 @@ class ErrorWindow(tkinter.Frame):
 		
 		self.parent.title("Error")
 		self.parent.minsize(200, 0)
-		self.parent.update()
 		self.parent.resizable(False, False)
 		self.parent.grab_set()
+		self.parent.update()
 		
 		#Play error sound
 		winsound.MessageBeep()
@@ -424,7 +417,7 @@ class ErrorWindow(tkinter.Frame):
 		#root.wait_window(self.parent)
 		self.parent.mainloop()
 	
-	def close(self):
+	def close(self, *args):
 		self.ErrorWindows.remove(self.parent)
 		self.parent.destroy()
 
