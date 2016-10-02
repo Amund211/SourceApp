@@ -1,16 +1,14 @@
-#This project is licensed under the terms of the GNU General Public License v3.0.
+# This project is licensed under the terms of the GNU General Public License v3.0.
 class Formatter():
-	#The inputs for the formatter are based on preprogrammed formats, and the formatter will not function if they do not exist
 	languages = {}
 	languages["norwegian"] = {"pageShort" : "s.", "availableFrom" : "Hentet fra: ", "noDate" : "i. d."}
 	languages["english"] = {"pageShort" : "p.", "availableFrom" : "Available from: ", "noDate" : "n. d."}
 	languages["norwegian"]["monthNames"] = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"]
 	languages["english"]["monthNames"] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 	
-	#Dictionary of lists of valid inputs for the formatter instance and the source
+	# Valid inputs for the Formatter instance and source input.
 	validInputs = {}
-	#Gets info from the dictionary defined above
-	validInputs["language"] = sorted([item for item in languages])
+	validInputs["language"] = sorted([item for item in languages])		# Gets info from the dictionary defined above
 	validInputs["publicationType"] = sorted(["book", "webpage"])
 	validInputs["formatStyle"] = sorted(["harvard"])
 	
@@ -26,12 +24,12 @@ class Formatter():
 	def _formatDate(self, rawDate):
 		"""Takes tuple (int day, int month, int year) and formats it to a verbose format in the instance's language"""
 		if rawDate != "":
-			if not 0 < rawDate[0] < 32:
-				raise UserWarning("Given value for day ({0}) was not valid. (Must be 1->31)".format(rawDate[0]))
-			if not 0 < rawDate[1] < 13:
-				raise UserWarning("Given value for day ({0}) was not valid. (Must be 1->12)".format(rawDate[1]))
-			if not type(rawDate[0]) == type(0):
-				raise UserWarning("Given value for year ({0}) was not valid. (Must be type int)".format(rawDate[2]))
+			if not 0 < int(rawDate[0]) < 32:
+				raise ValueError("Given value for day ({0}) was not valid. (Must be 1->31)".format(rawDate[0]))
+			if not 0 < int(rawDate[1]) < 13:
+				raise ValueError("Given value for day ({0}) was not valid. (Must be 1->12)".format(rawDate[1]))
+			if not type(int(rawDate[0])) == int:
+				raise TypeError("Given value for year ({0}) was not valid. (Must be type int)".format(rawDate[2]))
 			formattedDate = "{0} {1} {2}".format(str(rawDate[0]), self.languages[self.language]["monthNames"][rawDate[1]-1], str(rawDate[2]))
 		else:
 			formattedDate = ""
@@ -39,36 +37,90 @@ class Formatter():
 	
 	def __init__(self, formatStyle="harvard", language="english"):
 		"""Saves the attributes for the formatter to the instance for referance later"""
+		if formatStyle not in self.validInputs["formatStyle"]:
+			raise ValueError("Input for formatStyle was invalid ({})".format(formatStyle))
+		
+		if language not in self.validInputs["language"]:
+			raise ValueError("Input for language was invalid ({})".format(language))
+		
 		self.formatStyle = formatStyle
 		self.language = language
 	
 	def formatSource(self, a1FirstName="", a1LastName="", a2FirstName="", a2LastName="", a3FirstName="", a3LastName="", pageNumberRange="", publishedYear="", publicationName="", publicationType="", publisherName="", publisherLocation="", publicationURL="", fetchedDate=""):
 		"""Formats a source to the instance's standards, based on the inputs to this method"""
-		#Setting up the formats
+		if publicationType not in self.validInputs["publicationType"]:
+			raise ValueError("Input for publicationType was invalid ({})".format(publicationType))
+		
+		# Setting up the formats
+		#
+		# The formats are defined by a list of tuples. The first element in each tuple will be a string,
+		# and the second element will be a boolean. The first element of each tuple will be concatenated
+		# onto an output string if, and only if, the second element of the tuple has a value of True.
+		# The tuples should be given in the format: (("string"), (condition))
+		#
+		# NB: The default value of any input is an empty string. Thereby checking if an input is defined by
+		# the user can be done as follows: (input != "")
+		#
+		# Example: ((a1LastName + ", "), (a1LastName != ""))
+		# Will add the last name of the first author followed by a comma and a space if it was given as an input
+		
 		templates = {}
+		# Templates are a way of shortening the otherwise excrutiatingly long format definitions.
+		# They work by defining smaller subsections of the formats which are used in multiple places.
+		# These could be global across all formats, or could only apply for some subsets. For example:
+		# the way that the authors' names are given in the harvard style for webpages and books are the
+		# same for the source list, and the in text citation individually. Therefore I have, in the
+		# formatStyle == "harvard" block defined the templates "AuthorNames" and "AuthorLastNames".
+		#
+		# Templates are given in the same way that the regular formats are, and are referenced by unpacking
+		# the list in the place where it should be referenced
+		# Example: fullFormat = [*templates["Template"], (("text"), (True))]
+		#
 		if self.formatStyle == "harvard":
-			templates["AuthorNames"] = [
-			((a1LastName + ", "), (a1LastName != "")), ((self._getInitials(a1FirstName) + ". "), (a1FirstName != "")),
-			(("& "), ((a2FirstName != "" or a2LastName != "") and (a3FirstName == "" and a3LastName == ""))),
-			((a2LastName + ", "), (a2LastName != "")), ((self._getInitials(a2FirstName) + ". "), (a2FirstName != "")),
-			(("& "), (a3FirstName != "" or a3LastName != "")),
-			((a3LastName + ", "), (a3LastName != "")), ((self._getInitials(a3FirstName) + ". "), (a3FirstName != ""))]
+			templates["AuthorNames"] = [((a1LastName + ", "), (a1LastName != "")),
+										((self._getInitials(a1FirstName) + ". "), (a1FirstName != "")),
+										(("& "), ((a2FirstName != "" or a2LastName != "") and (a3FirstName == "" and a3LastName == ""))),
+										((a2LastName + ", "), (a2LastName != "")),
+										((self._getInitials(a2FirstName) + ". "), (a2FirstName != "")),
+										(("& "), (a3FirstName != "" or a3LastName != "")),
+										((a3LastName + ", "), (a3LastName != "")),
+										((self._getInitials(a3FirstName) + ". "), (a3FirstName != ""))]
 			
-			templates["AuthorLastNames"] = [
-			((a1LastName), (a1LastName != "")), ((", "), (a3LastName != "")),
-			((" & "), (a2LastName != "" and a3LastName == "")), ((a2LastName), (a2LastName != "")),
-			((" & "), (a3LastName != "")), ((a3LastName), (a3LastName != ""))]
+			templates["AuthorLastNames"] = [((a1LastName), (a1LastName != "")),
+											((", "), (a3LastName != "")),
+											((" & "), (a2LastName != "" and a3LastName == "")),
+											((a2LastName), (a2LastName != "")),
+											((" & "), (a3LastName != "")),
+											((a3LastName), (a3LastName != ""))]
 			
-			templates["pubYear_pubName"] = ((publishedYear + ", "), (publishedYear != "" and (a1FirstName != "" or a1LastName != ""))), ((publicationName), (publicationName != ""))
+			templates["pubYear_pubName"] = [((publishedYear + ", "), (publishedYear != "" and (a1FirstName != "" or a1LastName != ""))),
+											((publicationName), (publicationName != ""))]
 			
 			if publicationType == "book":
-				fullFormat = [*templates["AuthorNames"], *templates["pubYear_pubName"], ((","), (a1FirstName != "" or a1LastName != "") and (publisherLocation != "" or publisherName != "")), ((" "), (publicationName != "") and (publisherLocation != "" or publisherName != "")), ((publisherName), (publisherName != "")), ((", " + publisherLocation), (publisherLocation != ""))]
-				shortFormat = [(("("), (True)), *templates["AuthorLastNames"],((publicationName), (a1LastName == "")), ((" " + publishedYear), (publishedYear != "")), ((")"), (True))]
+				fullFormat = [*templates["AuthorNames"], *templates["pubYear_pubName"],
+							((","), (a1FirstName != "" or a1LastName != "") and (publisherLocation != "" or publisherName != "")),
+							((" "), (publicationName != "") and (publisherLocation != "" or publisherName != "")),
+							((publisherName), (publisherName != "")),
+							((", " + publisherLocation), (publisherLocation != ""))]
+				
+				shortFormat = [(("("), (True)), *templates["AuthorLastNames"],
+							((publicationName), (a1LastName == "")),
+							((" " + publishedYear), (publishedYear != "")),
+							((")"), (True))]
+				
 			elif publicationType == "webpage":
-				fullFormat = [*templates["AuthorNames"], *templates["pubYear_pubName"], ((". "), (publicationName != "")), ((self.languages[self.language]["availableFrom"] + publicationURL + ". "), (publicationURL != "")), (("[{}]".format(self._formatDate(fetchedDate))), (fetchedDate != ""))]
-				shortFormat = [(("("), (True)), *templates["AuthorLastNames"],((publicationName), (a1LastName == "")), ((" " + publishedYear), (publishedYear != "")), (" " + (self.languages[self.language]["noDate"]), (publishedYear == "")), ((")"), (True))]
+				fullFormat = [*templates["AuthorNames"], *templates["pubYear_pubName"],
+							((". "), (publicationName != "")),
+							((self.languages[self.language]["availableFrom"] + publicationURL + ". "), (publicationURL != "")),
+							(("[{}]".format(self._formatDate(fetchedDate))), (fetchedDate != ""))]
+				
+				shortFormat = [(("("), (True)), *templates["AuthorLastNames"],
+							((publicationName), (a1LastName == "")),
+							((" " + publishedYear), (publishedYear != "")),
+							(" " + (self.languages[self.language]["noDate"]),
+							(publishedYear == "")), ((")"), (True))]
 
-		#Concat all enabled strings to an output string
+		# Concat all enabled strings to an output string
 		fullSrc = ""
 		for key, val in enumerate(fullFormat):
 			if fullFormat[key][1] == True:
@@ -78,17 +130,18 @@ class Formatter():
 		for key, val in enumerate(shortFormat):
 			if shortFormat[key][1] == True:
 				shortSrc += str(val[0])
+		
 		#return dictionary for full and in text citation
 		return {"full" : fullSrc, "short" : shortSrc}
 
 if __name__ == "__main__":
+	#"""
 	formatStyle = {"formatStyle" : "harvard", "language" : "english"}
 	formatter = Formatter(**formatStyle)
 	
 	import inspect
 	allArgs = list(inspect.getargspec(formatter.formatSource)[0])
 	allArgs.remove("self")
-	#print(allArgs, len(allArgs))
 	
 	bookDict = {key:key for key in allArgs}
 	webpageDict = dict(bookDict)
@@ -97,8 +150,6 @@ if __name__ == "__main__":
 	bookDict["fetchedDate"] = ""
 	webpageDict["publicationType"] = "webpage"
 	webpageDict["fetchedDate"] = (1,2,2003)
-	#bookDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publicationType" : "book", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
-	#webpageDict = {"a1FirstName" : "a1FirstName", "a1LastName" : "a1LastName", "a2FirstName" : "a2FirstName", "a2LastName" : "a2LastName", "a3FirstName" : "a3FirstName", "a3LastName" : "a3LastName", "pageNumberRange" : "pageNumberRange", "publishedYear" : "publishedYear", "publicationName" : "publicationName", "publicationType" : "webpage", "publisherName" : "publisherName", "publisherLocation" : "publisherLocation", "publicationURL" : "publicationURL", "fetchedDate" : (1, 2, 2003)}
 	
 	bookFormatted = formatter.formatSource(**bookDict)
 	print("Book: ")
@@ -109,3 +160,28 @@ if __name__ == "__main__":
 	print("Webpage: ")
 	print(webpageFormatted["full"])
 	print(webpageFormatted["short"])
+	"""
+	import inspect
+	
+	print("Formatting a source:")
+	print("Formatter options:")
+	formatterArgList = list(inspect.getargspec(Formatter.__init__)[0])
+	formatterArgList.remove("self")
+	formatterKwargs = {}
+	for item in formatterArgList:
+		formatterKwargs[item] = input(item + ": ")
+	
+	print("\nSource input:")
+	sourceArgList = list(inspect.getargspec(Formatter.formatSource)[0])
+	sourceArgList.remove("self")
+	sourceKwargs = {}
+	for item in sourceArgList:
+		sourceKwargs[item] = input(item + ": ")
+	
+	formatter = Formatter(**formatterKwargs)
+	source = formatter.formatSource(**sourceKwargs)
+	
+	print("\n\n" + source["full"])
+	print("\n" + source["short"])
+	print(sourceKwargs)
+	"""

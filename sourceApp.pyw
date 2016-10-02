@@ -1,4 +1,4 @@
-#This project is licensed under the terms of the GNU General Public License v3.0.
+# This project is licensed under the terms of the GNU General Public License v3.0.
 from sourceFormat import Formatter
 import winsound
 
@@ -30,7 +30,7 @@ class SourceList(tkinter.Frame):
 		self.scrollbar = tkinter.Scrollbar(self)
 		self.scrollbar.grid(row = 1, column = 6, sticky = "NS")
 		
-		self.listbox = tkinter.Listbox(self, yscrollcommand=self.scrollbar.set, height = 10, width = 100)#, selectmode = tkinter.SINGLE #idk
+		self.listbox = tkinter.Listbox(self, yscrollcommand=self.scrollbar.set, height = 10, width = 100)
 		self.listbox.grid(row = 1, column = 1, columnspan = 5, padx = (10, 10), pady = (10, 10))
 		self.listbox.bind("<<ListboxSelect>>", self.onSelect)
 		self.listbox.bind("<Double-1>", self.editEntry)
@@ -88,7 +88,7 @@ class SourceList(tkinter.Frame):
 		
 	
 	def onSelect(self, event):
-		#Send selected source from list to sourceDisplay
+		# Send selected source from list to sourceDisplay
 		sender = event.widget
 		try:
 			listIndex = sender.curselection()[0]
@@ -99,7 +99,7 @@ class SourceList(tkinter.Frame):
 	
 	def updateList(self):
 		self.displaySources = []
-		#Converting dictionary allSources to list displaySources
+		# Converting dictionary allSources to list displaySources
 		for dictnum, dict in enumerate(self.allSources[:]):
 			self.displaySources.append([])
 			for kwnum, kw in enumerate(self.allSources[dictnum]):
@@ -107,17 +107,17 @@ class SourceList(tkinter.Frame):
 					self.displaySources[dictnum].append(self.allSources[dictnum][kw])
 
 		for dictnum in range(len(self.allSources[:])-1):
-			#Deleting duplicate entries
+			# Deleting duplicate entries
 			if self.allSources[dictnum]==self.allSources[-1]:
 				del(self.allSources[-1])
 				del(self.displaySources[-1])
 				break
-			#Deleting empty entries
+			# Deleting empty entries
 			if len(self.allSources[dictnum]) == 0:
 				del(self.allSources[dictnum])
 				del(self.displaySources[dictnum])
 		
-		#Populating the listbox
+		# Populating the listbox
 		self.listbox.delete(0, tkinter.END)
 		for item in self.displaySources:
 			self.listbox.insert(tkinter.END, item)
@@ -142,7 +142,6 @@ class SourceDisplay(tkinter.Frame):
 		self.label1.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 0))
 		
 		self.source1 = tkinter.Text(self, height = 1, width = 50)
-		#self.source1.insert("insert", "(a1LastName, a2LastName & a3LastName publishedYear)")
 		self.source1.config(state = "disabled")
 		self.source1.grid(column = 0, row = 2, padx = (10, 10), pady = (0, 10))
 		
@@ -153,7 +152,6 @@ class SourceDisplay(tkinter.Frame):
 		self.label2.grid(column= 0, row=4, padx = (10, 10), pady = (10, 0))
 		
 		self.source2 = tkinter.Text(self, height = 4, width = 75)
-		#self.source2.insert("insert", "a1LastName, FN. a2LastName, FN. & a3LastName, FN. publishedYear, publicationName, publisherName, publisherLocation")
 		self.source2.config(state = "disabled")
 		self.source2.grid(column = 0, row = 5, padx = (10, 10), pady = (0, 10))
 	
@@ -162,7 +160,7 @@ class SourceDisplay(tkinter.Frame):
 		self.clipboard_append(self.source1.get("1.0", "end")[:-1])
 	
 	def setSource(self, source):
-		#Format given source and display
+		# Format given source and display
 		formattedSource = MainFormatter.formatSource(**source)
 		self.source1.config(state = "normal")
 		self.source1.delete(1.0, tkinter.END)
@@ -185,7 +183,7 @@ class SourceInput(tkinter.Frame):
 		self.grid()
 		self.config(borderwidth = borderwidth, relief = borderstyle)
 		
-		#Bind enter to add source
+		# Bind enter to add source
 		self.bind_all("<Return>", self.addSource)
 		
 		# create a canvas object and a vertical scrollbar for scrolling it
@@ -206,8 +204,8 @@ class SourceInput(tkinter.Frame):
 		self.interior.grid(sticky = "NSEW")
 		self.interior_id = self.canvas.create_window(0, 0, window = interior, anchor = tkinter.NW)
 		
-		#Bind windowconfigure to object method to handle resizing properly
-		#Allow mousewheel to scroll the scrollbar
+		# Bind windowconfigure to object method to handle resizing properly
+		# Allow mousewheel to scroll the scrollbar
 		self.interior.bind('<Configure>', self._configure_interior)
 		self.canvas.bind('<Configure>', self._configure_canvas)
 		self.interior.bind("<MouseWheel>", self._on_mousewheel)
@@ -223,7 +221,7 @@ class SourceInput(tkinter.Frame):
 		if len(self.varNames) != len(self.textNames):
 			raise UserWarning("varNames and textNames table pair was not equally long. (SourceInput.varNames, {0} long; SourceInput.textNames, {1} long.)".format(len(self.varNames), len(self.textNames)))
 		
-		#Organize widgets into a dictionary to avoid cluttering the namespace
+		# Organize widgets into a dictionary to avoid cluttering the namespace
 		self.texts = {}
 		self.vars = {}
 		self.formatterOptions = {}
@@ -234,7 +232,7 @@ class SourceInput(tkinter.Frame):
 				self.widgets["labels"][v] = tkinter.Label(self.interior, text = self.texts[v])
 				self.widgets["labels"][v].grid(column = 0, row = k+1, padx = (10, 10), pady = (10, 10))
 				self.widgets["labels"][v].bind("<MouseWheel>", self._on_mousewheel)
-				#Do not add entry widget for the formatter options (added later)
+				# Do not add entry widget for the formatter options (added later)
 				if k >= 3:
 					self.vars[v] = tkinter.StringVar(self)
 					#Debugging
@@ -279,15 +277,15 @@ class SourceInput(tkinter.Frame):
 		self.interior.rowconfigure(0, weight = 1)
 		self.interior.rowconfigure(len(self.widgets["labels"]) + 6, weight = 1)
 		
-		#Default values for the formatter
+		# Default values for the formatter
 		self.formatterOptions["language"].set("Norwegian")
 		self.formatterOptions["formatStyle"].set("Harvard")
-		#Set trace
+		# Set trace
 		self.formatterOptions["language"].trace("w", updateFormatter)
 		self.formatterOptions["formatStyle"].trace("w", updateFormatter)
 	
 	def addSource(self, *args):
-		#Get data from the stringvars, and remove empty inputs
+		# Get data from the stringvars, and remove empty inputs
 		outputVars = {}
 		tmpDateFetched = [0, 0, 0]
 		try:
@@ -326,13 +324,13 @@ class SourceInput(tkinter.Frame):
 			ErrorWindow(tkinter.Tk(), msg = "No input given for publication type")
 			return
 		
-		#Clear input fields
+		# Clear input fields
 		for k, v in enumerate(self.vars):
 			if type(self.vars[v]) == type(tkinter.StringVar(self)):
 				self.vars[v].set("")
 			elif type(self.vars[v]) == type(tkinter.IntVar(self)):
 				self.vars[v].set(0)
-		#Add source to backend list, and update the frontend
+		# Add source to backend list, and update the frontend
 		self.parent.sourceList.allSources.append(outputVars)
 		self.parent.sourceList.updateList()
 		
@@ -378,8 +376,8 @@ class Application(tkinter.Frame):
 		self.sourceInput.grid(row = 0, column = 2, rowspan = 6, columnspan = 3, sticky = "WENS")
 
 class ErrorWindow(tkinter.Frame):
-	#Create errormsg by instanciating this as a child of a Tk instance
-	#ErrorWindow(tkinter.Tk(), msg = "Something went wrong")
+	# Create errormsg by instanciating this as a child of a Tk instance
+	# ErrorWindow(tkinter.Tk(), msg = "Something went wrong")
 	ErrorWindows = []
 	def __init__(self, parent, msg):
 		tkinter.Frame.__init__(self, parent)
@@ -391,7 +389,6 @@ class ErrorWindow(tkinter.Frame):
 		self.ErrorWindows.append(self.parent)
 		self.parent.protocol("WM_DELETE_WINDOW", self.close)
 		self.parent.bind("<Return>", self.close)
-		#Prevents an errorchain when closing application after opening errormessages too quickly
 		self.initialize()
 	
 	def initialize(self):
@@ -411,10 +408,9 @@ class ErrorWindow(tkinter.Frame):
 		self.parent.grab_set()
 		self.parent.update()
 		
-		#Play error sound
+		# Play error sound
 		winsound.MessageBeep()
 		
-		#root.wait_window(self.parent)
 		self.parent.mainloop()
 	
 	def close(self, *args):
@@ -446,5 +442,4 @@ if __name__ == "__main__":
 	root.update()
 	updateFormatter()
 	root.minsize(root.winfo_width(), root.winfo_height())
-	#root.iconify()
 	root.mainloop()
