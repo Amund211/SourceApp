@@ -47,6 +47,7 @@ class SourceList(tkinter.Frame):
 		self.deleteButton.grid(column = 4, row = 2, padx = (5, 5), pady = (2, 10), sticky = "W")
 	
 	def copyEntries(self):
+		"""Copy entire sourcelist to clipboard"""
 		sourceListOutput = ""
 		if len(self.allSources) == 0:
 			ErrorWindow(tkinter.Tk(), msg = "List is empty")
@@ -57,6 +58,7 @@ class SourceList(tkinter.Frame):
 		self.clipboard_append(sourceListOutput)
 	
 	def editEntry(self, *args):
+		"""Remove entry from sourcelist and bring datapoints back into the entry fields to edit"""
 		try:
 			listIndex = self.listbox.curselection()[0]
 			for key in self.parent.sourceInput.vars:
@@ -79,6 +81,7 @@ class SourceList(tkinter.Frame):
 			ErrorWindow(tkinter.Tk(), msg = "No entry selected")
 	
 	def deleteEntry(self):
+		"""Remove entry from sourcelist"""
 		try:
 			listIndex = self.listbox.curselection()[0]
 			del self.allSources[listIndex]
@@ -88,7 +91,7 @@ class SourceList(tkinter.Frame):
 		
 	
 	def onSelect(self, event):
-		# Send selected source from list to sourceDisplay
+		"""Passes the selected source to the sourceDisplay instance to display it"""
 		sender = event.widget
 		try:
 			listIndex = sender.curselection()[0]
@@ -98,6 +101,7 @@ class SourceList(tkinter.Frame):
 			pass
 	
 	def updateList(self):
+		"""Updates the displaySources list to reflect the allSources list based on edits or a new formatter"""
 		self.displaySources = []
 		# Converting dictionary allSources to list displaySources
 		for dictnum, dict in enumerate(self.allSources[:]):
@@ -156,11 +160,13 @@ class SourceDisplay(tkinter.Frame):
 		self.source2.grid(column = 0, row = 5, padx = (10, 10), pady = (0, 10))
 	
 	def copyShort(self):
+		"""Copies short form source format to clipboard"""
 		self.clipboard_clear()
 		self.clipboard_append(self.source1.get("1.0", "end")[:-1])
 	
 	def setSource(self, source):
-		# Format given source and display
+		"""Formats given source and displays it"""
+		# Activated by SourceList.onSelect method
 		formattedSource = MainFormatter.formatSource(**source)
 		self.source1.config(state = "normal")
 		self.source1.delete(1.0, tkinter.END)
@@ -214,6 +220,7 @@ class SourceInput(tkinter.Frame):
 		self.populate()
 	
 	def populate(self):
+		"""Adds widgets and defines vars"""
 		self.varNames = ["formatStyle", "language", "publicationType", "a1FirstName", "a1LastName", "a2FirstName", "a2LastName", "a3FirstName", "a3LastName", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
 		self.textNames = ["Format style:", "Language:", "Publication type:", "A. 1 First name:", "A. 1 Last name:", "A. 2 First name:", "A. 2 Last name:", "A. 3 First name:", "A. 3 Last name:", "Page number/range:", "Published year:", "Publication name:", "Publisher name:", "Publisher location:", "Publication URL:", "Date fetched:"]
 		self.comboboxValues = {"formatStyle" : [value.capitalize() for value in Formatter.validInputs["formatStyle"]], "language" : [value.capitalize() for value in Formatter.validInputs["language"]], "publicationType" : [value.capitalize() for value in Formatter.validInputs["publicationType"]], "fetchedDay" : list(range(32)), "fetchedMonth" : list(range(13)), "fetchedYear" : [0, *list(range(2016, 2031, 1))]}
@@ -285,6 +292,9 @@ class SourceInput(tkinter.Frame):
 		self.formatterOptions["formatStyle"].trace("w", updateFormatter)
 	
 	def addSource(self, *args):
+		"""Gets data from vars stored on instance and adds them as new source to SourceList.allSources and updates list"""
+		# Bound to <Return> and button through SourceInput
+		
 		# Get data from the stringvars, and remove empty inputs
 		outputVars = {}
 		tmpDateFetched = [0, 0, 0]
@@ -318,6 +328,7 @@ class SourceInput(tkinter.Frame):
 			ErrorWindow(tkinter.Tk(), msg = "Input for fetched day must be 1-31")
 			return
 		
+		# Throw error if publicationType not defined
 		if not "publicationType" in outputVars:
 			self.canvas.yview_moveto(0)
 			self.widgets["comboboxes"]["publicationType"].focus()
