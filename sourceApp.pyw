@@ -1,9 +1,12 @@
 # This project is licensed under the terms of the GNU General Public License v3.0.
 from sourceFormat import Formatter
 import winsound
+import pickle
+import os
 
 import tkinter
 import tkinter.ttk as ttk
+import tkinter.filedialog as filedialog
 
 borderstyles = ["flat", "sunken", "raised", "groove", "ridge"]
 borderstyle = borderstyles[4]
@@ -12,7 +15,11 @@ borderwidth = 2
 class SourceList(tkinter.Frame):
 	def __init__(self, parent):
 		tkinter.Frame.__init__(self, parent)
+		# Backend source management
 		self.allSources = []
+		# Backup of allSources at every save
+		self.allSources_bak = []
+		# Frontend shortened source list
 		self.displaySources = []
 		self.parent = parent
 		self.initialize()
@@ -428,6 +435,93 @@ class ErrorWindow(tkinter.Frame):
 		self.ErrorWindows.remove(self.parent)
 		self.parent.destroy()
 
+
+class TopMenu(tkinter.Menu):
+	def __init__(self, parent):
+		tkinter.Menu.__init__(self, parent)
+		self.parent = parent
+		self.initialize(parent)
+	
+	def initialize(self, parent):
+		self.filemenu = tkinter.Menu(self, tearoff=0)
+		self.filemenu.add_command(label="Open", command=openFile)
+		self.filemenu.add_command(label="Save as", command=saveFile)
+		self.filemenu.add_separator()
+		self.filemenu.add_command(label="Exit", command=self.exit)
+		self.add_cascade(label="File", menu=self.filemenu)
+		
+		self.helpmenu = tkinter.Menu(self, tearoff=0)
+		self.helpmenu.add_command(label="About", command=about)
+		self.add_cascade(label="Help", menu=self.helpmenu)
+	
+	def exit(self):
+		closeWindows()
+
+
+def openFile():
+	"""Import pickle file to allSources"""
+	# Check if valid list?
+	
+	# Ask to save
+	saveChanges()
+	
+	sourceLoc = os.path.dirname(os.path.realpath(__file__)) + "\\sources"
+	if os.path.isdir(sourceLoc) == False:
+		os.mkdir(sourceLoc)
+	options = {}
+	options["defaultextension"] = "*.pkl" #Is this doing anything?
+	options["filetypes"] = [("Pickle files", "*.p"), ("Pickle files", "*.pkl")]
+	#options["initialfile"] = "source.pkl"
+	options["multiple"] = False
+	options["initialdir"] = sourceLoc
+	options["parent"] = root
+	options["title"] = "Open source file"
+	
+	filepath = filedialog.askopenfilename(**options)
+	if filepath == "":
+		return
+	app.sourceList.allSources = pickle.load(open(filepath, "rb"))
+	app.sourceList.updateList()
+
+def saveFile():
+	"""Dump allSources as pickle file"""
+	sourceLoc = os.path.dirname(os.path.realpath(__file__)) + "\\sources"
+	if os.path.isdir(sourceLoc) == False:
+		os.mkdir(sourceLoc)
+	
+	options = {}
+	options["defaultextension"] = "*.pkl" #Is this doing anything?
+	options["filetypes"] = [("Pickle files", "*.p"), ("Pickle files", "*.pkl")]
+	options["initialfile"] = "source.pkl"
+	options["confirmoverwrite"] = True
+	options["initialdir"] = sourceLoc
+	options["parent"] = root
+	options["title"] = "Save source file"
+	
+	filepath = filedialog.asksaveasfilename(**options)
+	if filepath == "":
+		return
+	pickle.dump(app.sourceList.allSources, open(filepath, "wb"))
+	app.sourceList.allSources_bak = app.sourceList.allSources
+
+def saveChanges():
+	"""Ask if user wants to save current sources"""
+	# Should return output based on user input:
+	# Cancel from user should cancel task that initiated save
+	# Yes should prompt to save and continue
+	# No should continue
+	
+	# Should have quick close button
+	if app.sourceList.allSources == []:
+		return
+	if app.sourceList.allSources_bak == app.sourceList.allSources:
+		# Nothing has changes since last save - do not promt to save
+		return
+	
+
+def about():
+	print("about")
+
 def updateFormatter(*args):
 	formatterKwargs = {}
 	for k, v in enumerate(app.sourceInput.formatterOptions):
@@ -437,6 +531,7 @@ def updateFormatter(*args):
 	app.sourceList.updateList()
 
 def closeWindows():
+	saveChanges()
 	for window in ErrorWindow.ErrorWindows:
 		window.destroy()
 		ErrorWindow.ErrorWindows.remove(window)
@@ -446,6 +541,8 @@ if __name__ == "__main__":
 	root = tkinter.Tk()
 	root.columnconfigure(0, weight = 1)
 	root.rowconfigure(0, weight = 1)
+	menubar = TopMenu(root)
+	root.config(menu=menubar)
 	app = Application(root)
 	app.grid(sticky = "NSEW")
 	root.title("Source Formatting")
