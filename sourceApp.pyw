@@ -444,8 +444,8 @@ class TopMenu(tkinter.Menu):
 	
 	def initialize(self, parent):
 		self.filemenu = tkinter.Menu(self, tearoff=0)
-		self.filemenu.add_command(label="Open", command=openFile)
-		self.filemenu.add_command(label="Save as", command=saveFile)
+		self.filemenu.add_command(label="Open           Ctrl+o", command=openFile)
+		self.filemenu.add_command(label="Save as        Ctrl+s", command=saveFile)
 		self.filemenu.add_separator()
 		self.filemenu.add_command(label="Exit", command=self.exit)
 		self.add_cascade(label="File", menu=self.filemenu)
@@ -458,11 +458,9 @@ class TopMenu(tkinter.Menu):
 		closeWindows()
 
 
-def openFile():
+def openFile(*args):
 	"""Import pickle file to allSources"""
-	# Check if valid list?
-	
-	# Ask to save
+	# Ask to save current sources
 	saveChanges()
 	
 	sourceLoc = os.path.dirname(os.path.realpath(__file__)) + "\\sources"
@@ -480,11 +478,27 @@ def openFile():
 	filepath = filedialog.askopenfilename(**options)
 	if filepath == "":
 		return
-	app.sourceList.allSources = pickle.load(open(filepath, "rb"))
+	importSource = pickle.load(open(filepath, "rb"))
+	
+	# Check if valid list:
+	# Test for random dictionary key in source
+	try:
+		if not "publicationName" in importSource[0]:
+			ErrorWindow(tkinter.Tk(), msg="Invalid sourcefile")
+			return
+	except (IndexError, TypeError, KeyError, EOFError):
+		ErrorWindow(tkinter.Tk(), msg="Invalid sourcefile")
+		return
+	
+	app.sourceList.allSources = importSource
+	app.sourceList.allSources_bak = app.sourceList.allSources[:]
 	app.sourceList.updateList()
 
-def saveFile():
+def saveFile(*args):
 	"""Dump allSources as pickle file"""
+	if app.sourceList.allSources == []: # Nothing to save
+		ErrorWindow(tkinter.Tk(), msg="Nothing to save")
+		return
 	sourceLoc = os.path.dirname(os.path.realpath(__file__)) + "\\sources"
 	if os.path.isdir(sourceLoc) == False:
 		os.mkdir(sourceLoc)
@@ -502,7 +516,7 @@ def saveFile():
 	if filepath == "":
 		return
 	pickle.dump(app.sourceList.allSources, open(filepath, "wb"))
-	app.sourceList.allSources_bak = app.sourceList.allSources
+	app.sourceList.allSources_bak = app.sourceList.allSources[:]
 
 def saveChanges():
 	"""Ask if user wants to save current sources"""
@@ -510,13 +524,13 @@ def saveChanges():
 	# Cancel from user should cancel task that initiated save
 	# Yes should prompt to save and continue
 	# No should continue
-	
 	# Should have quick close button
 	if app.sourceList.allSources == []:
 		return
 	if app.sourceList.allSources_bak == app.sourceList.allSources:
-		# Nothing has changes since last save - do not promt to save
+		# Nothing has changed since last save - do not promt to save
 		return
+	print("Prompt to save changes")
 	
 
 def about():
@@ -543,6 +557,8 @@ if __name__ == "__main__":
 	root.rowconfigure(0, weight = 1)
 	menubar = TopMenu(root)
 	root.config(menu=menubar)
+	root.bind("<Control-s>", saveFile)
+	root.bind("<Control-o>", openFile)
 	app = Application(root)
 	app.grid(sticky = "NSEW")
 	root.title("Source Formatting")
