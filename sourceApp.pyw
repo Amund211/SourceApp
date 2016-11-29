@@ -132,8 +132,7 @@ class SourceList(tkinter.Frame):
 		self.listbox.delete(0, tkinter.END)
 		for item in self.displaySources:
 			self.listbox.insert(tkinter.END, item)
-		
-		
+
 
 class SourceDisplay(tkinter.Frame):
 	def __init__(self, parent):
@@ -197,7 +196,7 @@ class SourceInput(tkinter.Frame):
 		self.config(borderwidth = borderwidth, relief = borderstyle)
 		
 		# Bind enter to add source
-		self.bind_all("<Return>", self.addSource)
+		self.parent.parent.bind("<Return>", self.addSource)
 		
 		# create a canvas object and a vertical scrollbar for scrolling it
 		self.vscrollbar = tkinter.Scrollbar(self)
@@ -393,6 +392,7 @@ class Application(tkinter.Frame):
 		self.sourceInput = SourceInput(self)
 		self.sourceInput.grid(row = 0, column = 2, rowspan = 6, columnspan = 3, sticky = "WENS")
 
+
 class ErrorWindow(tkinter.Frame):
 	# Create errormsg by instanciating this as a child of a Tk instance
 	# ErrorWindow(tkinter.Tk(), msg = "Something went wrong")
@@ -436,6 +436,55 @@ class ErrorWindow(tkinter.Frame):
 		self.parent.destroy()
 
 
+class SaveChangesPrompt(tkinter.Toplevel):
+	def __init__(self, parent):
+		tkinter.Toplevel.__init__(self, parent)
+		self.parent = parent
+		
+		
+		self.columnconfigure(0, weight = 1)
+		self.columnconfigure(1, weight = 1)
+		self.rowconfigure(0, weight = 1)
+		
+		self.msg = tkinter.Label(self, text = "Do you wish to save the current changes?")
+		self.msg.grid(column = 0, row = 0, columnspan=2, padx = (10, 10), pady = (10, 10))
+
+		self.yesButton = tkinter.Button(self, text = "Yes", command = self.yes, width = 10)
+		self.yesButton.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 10))
+		
+		self.noButton = tkinter.Button(self, text = "No", command = self.no, width = 10)
+		self.noButton.grid(column = 1, row = 1, padx = (10, 10), pady = (10, 10))
+		
+		self.title("Unsaved changes")
+		self.minsize(200, 0)
+		self.resizable(False, False)
+		self.update()
+		
+		self.protocol("WM_DELETE_WINDOW", self.cancel)
+		
+		# Play alert sound
+		winsound.MessageBeep()
+
+		self.transient(parent) #set to be on top of the main window
+		self.grab_set() #hijack all commands from the parent (clicks on the main window are ignored)
+		self.parent.wait_window(self) #pause anything on the main window until this one closes (optional)
+		
+	def yes(self):
+		global saveExitCode
+		saveExitCode = 1
+		self.destroy()
+	
+	def no(self):
+		global saveExitCode
+		saveExitCode = -1
+		self.destroy()
+	
+	def cancel(self):
+		global saveExitCode
+		saveExitCode = 0
+		self.destroy()
+
+
 class TopMenu(tkinter.Menu):
 	def __init__(self, parent):
 		tkinter.Menu.__init__(self, parent)
@@ -449,10 +498,6 @@ class TopMenu(tkinter.Menu):
 		self.filemenu.add_separator()
 		self.filemenu.add_command(label="Exit", command=self.exit)
 		self.add_cascade(label="File", menu=self.filemenu)
-		
-		self.helpmenu = tkinter.Menu(self, tearoff=0)
-		self.helpmenu.add_command(label="About", command=about)
-		self.add_cascade(label="Help", menu=self.helpmenu)
 	
 	def exit(self):
 		closeWindows()
@@ -461,7 +506,8 @@ class TopMenu(tkinter.Menu):
 def openFile(*args):
 	"""Import pickle file to allSources"""
 	# Ask to save current sources
-	saveChanges()
+	if saveChanges() == 0:
+		return
 	
 	sourceLoc = os.path.dirname(os.path.realpath(__file__)) + "\\sources"
 	if os.path.isdir(sourceLoc) == False:
@@ -530,11 +576,12 @@ def saveChanges():
 	if app.sourceList.allSources_bak == app.sourceList.allSources:
 		# Nothing has changed since last save - do not promt to save
 		return
-	print("Prompt to save changes")
+	SaveChangesPrompt(app)
 	
-
-def about():
-	print("about")
+	if saveExitCode == 1:
+		saveFile()
+	
+	return saveExitCode #1=yes, 0=cancel, -1=no
 
 def updateFormatter(*args):
 	formatterKwargs = {}
@@ -545,11 +592,14 @@ def updateFormatter(*args):
 	app.sourceList.updateList()
 
 def closeWindows():
-	saveChanges()
+	# Ask to save current sources
+	if saveChanges() == 0:
+		return
 	for window in ErrorWindow.ErrorWindows:
 		window.destroy()
 		ErrorWindow.ErrorWindows.remove(window)
 	root.destroy()
+
 
 if __name__ == "__main__":
 	root = tkinter.Tk()
