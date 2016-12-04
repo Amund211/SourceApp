@@ -57,7 +57,7 @@ class SourceList(tkinter.Frame):
 		"""Copy entire sourcelist to clipboard"""
 		sourceListOutput = ""
 		if len(self.allSources) == 0:
-			ErrorWindow(tkinter.Tk(), msg = "List is empty")
+			ErrorWindow(app, msg = "List is empty")
 			return
 		for source in self.allSources:
 			sourceListOutput += MainFormatter.formatSource(**source)["full"] + "\n"
@@ -85,7 +85,7 @@ class SourceList(tkinter.Frame):
 			del self.allSources[listIndex]
 			self.updateList()
 		except IndexError:
-			ErrorWindow(tkinter.Tk(), msg = "No entry selected")
+			ErrorWindow(app, msg = "No entry selected")
 	
 	def deleteEntry(self):
 		"""Remove entry from sourcelist"""
@@ -94,7 +94,7 @@ class SourceList(tkinter.Frame):
 			del self.allSources[listIndex]
 			self.updateList()
 		except IndexError:
-			ErrorWindow(tkinter.Tk(), msg = "No entry selected")
+			ErrorWindow(app, msg = "No entry selected")
 		
 	
 	def onSelect(self, event):
@@ -196,7 +196,7 @@ class SourceInput(tkinter.Frame):
 		self.config(borderwidth = borderwidth, relief = borderstyle)
 		
 		# Bind enter to add source
-		self.parent.parent.bind("<Return>", self.addSource)
+		#self.parent.parent.bind("<Return>", self.addSource)
 		
 		# create a canvas object and a vertical scrollbar for scrolling it
 		self.vscrollbar = tkinter.Scrollbar(self)
@@ -318,27 +318,27 @@ class SourceInput(tkinter.Frame):
 					else:
 						outputVars[v] = self.vars[v].get()
 		except tkinter.TclError:
-			ErrorWindow(tkinter.Tk(), msg = "Input for {} was invalid".format(v))
+			ErrorWindow(app, msg = "Input for {} was invalid".format(v))
 			return
 		if 0 < tmpDateFetched[0] < 32:
 			if 0 < tmpDateFetched[1] < 13:
 				if tmpDateFetched[2] != 0:
 					outputVars["fetchedDate"] = tuple(tmpDateFetched)
 				elif tmpDateFetched[2] != 0:
-					ErrorWindow(tkinter.Tk(), msg = "Input for fetched year must be type int")
+					ErrorWindow(app, msg = "Input for fetched year must be type int")
 					return
 			elif tmpDateFetched[1] != 0:
-				ErrorWindow(tkinter.Tk(), msg = "Input for fetched month must be 1-12")
+				ErrorWindow(app, msg = "Input for fetched month must be 1-12")
 				return
 		elif tmpDateFetched[0] != 0:
-			ErrorWindow(tkinter.Tk(), msg = "Input for fetched day must be 1-31")
+			ErrorWindow(app, msg = "Input for fetched day must be 1-31")
 			return
 		
 		# Throw error if publicationType not defined
 		if not "publicationType" in outputVars:
 			self.canvas.yview_moveto(0)
 			self.widgets["comboboxes"]["publicationType"].focus()
-			ErrorWindow(tkinter.Tk(), msg = "No input given for publication type")
+			ErrorWindow(app, msg = "No input given for publication type")
 			return
 		
 		# Clear input fields
@@ -393,55 +393,57 @@ class Application(tkinter.Frame):
 		self.sourceInput.grid(row = 0, column = 2, rowspan = 6, columnspan = 3, sticky = "WENS")
 
 
-class ErrorWindow(tkinter.Frame):
-	# Create errormsg by instanciating this as a child of a Tk instance
-	# ErrorWindow(tkinter.Tk(), msg = "Something went wrong")
-	ErrorWindows = []
+class ErrorWindow(tkinter.Toplevel):
 	def __init__(self, parent, msg):
-		tkinter.Frame.__init__(self, parent)
+		tkinter.Toplevel.__init__(self, parent)
 		self.parent = parent
 		self.msg = msg
-		for window in self.ErrorWindows:
-			window.destroy()
-			self.ErrorWindows.remove(window)
-		self.ErrorWindows.append(self.parent)
-		self.parent.protocol("WM_DELETE_WINDOW", self.close)
-		self.parent.bind("<Return>", self.close)
+		globalbinds(0)
+		self.protocol("WM_DELETE_WINDOW", self.close)
+		self.escapeFuncID = self.bind_all("<Escape>", self.close)
+		self.returnFuncID = self.bind_all("<Return>", self.close)
 		self.initialize()
-	
+		
 	def initialize(self):
-		self.parent.columnconfigure(0, weight = 1)
-		self.parent.rowconfigure(0, weight = 1)
+		self.columnconfigure(0, weight = 1)
+		self.rowconfigure(0, weight = 1)
 		self.grid()
 		self.errormsg = tkinter.Label(self, text = self.msg)
 		self.errormsg.grid(column = 0, row = 0, padx = (10, 10), pady = (10, 10))
 		
 		self.okButton = tkinter.Button(self, text = "Ok", command = self.close, width = 10)
 		self.okButton.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 10))
-		self.parent.wm_attributes("-topmost", True)
+		self.okButton.focus()
+		#self.parent.wm_attributes("-topmost", True)
 		
-		self.parent.title("Error")
-		self.parent.minsize(200, 0)
-		self.parent.resizable(False, False)
-		self.parent.grab_set()
-		self.parent.update()
+		self.title("Error")
+		self.minsize(200, 0)
+		self.resizable(False, False)
+		self.update()
 		
 		# Play error sound
 		winsound.MessageBeep()
-		
-		self.parent.mainloop()
-	
-	def close(self, *args):
-		self.ErrorWindows.remove(self.parent)
-		self.parent.destroy()
 
+		self.transient(self.parent) #set to be on top of the main window
+		self.grab_set() #hijack all commands from the parent (clicks on the main window are ignored)
+		self.parent.wait_window(self) #pause anything on the main window until this one closes (optional)
+		
+	def close(self, *args):
+		self.unbind("<Escape>", self.escapeFuncID)
+		self.unbind("<Return>", self.returnFuncID)
+		globalbinds(1)
+		self.destroy()
 
 class SaveChangesPrompt(tkinter.Toplevel):
 	def __init__(self, parent):
 		tkinter.Toplevel.__init__(self, parent)
 		self.parent = parent
-		
-		
+		self.cancelFuncID = self.bind_all("<Escape>", self.cancel)
+		self.yesFuncID = self.bind_all("<Return>", self.yes)
+		globalbinds(0)
+		self.initialize()
+	
+	def initialize(self):
 		self.columnconfigure(0, weight = 1)
 		self.columnconfigure(1, weight = 1)
 		self.rowconfigure(0, weight = 1)
@@ -451,6 +453,7 @@ class SaveChangesPrompt(tkinter.Toplevel):
 
 		self.yesButton = tkinter.Button(self, text = "Yes", command = self.yes, width = 10)
 		self.yesButton.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 10))
+		self.yesButton.focus()
 		
 		self.noButton = tkinter.Button(self, text = "No", command = self.no, width = 10)
 		self.noButton.grid(column = 1, row = 1, padx = (10, 10), pady = (10, 10))
@@ -465,23 +468,29 @@ class SaveChangesPrompt(tkinter.Toplevel):
 		# Play alert sound
 		winsound.MessageBeep()
 
-		self.transient(parent) #set to be on top of the main window
+		self.transient(self.parent) #set to be on top of the main window
 		self.grab_set() #hijack all commands from the parent (clicks on the main window are ignored)
 		self.parent.wait_window(self) #pause anything on the main window until this one closes (optional)
-		
-	def yes(self):
+	
+	def yes(self, *args):
 		global saveExitCode
 		saveExitCode = 1
-		self.destroy()
+		self.terminate()
 	
-	def no(self):
+	def no(self, *args):
 		global saveExitCode
 		saveExitCode = -1
-		self.destroy()
+		self.terminate()
 	
-	def cancel(self):
+	def cancel(self, *args):
 		global saveExitCode
 		saveExitCode = 0
+		self.terminate()
+	
+	def terminate(self):
+		self.unbind("<Escape>", self.cancelFuncID)
+		self.unbind("<Return>", self.yesFuncID)
+		globalbinds(1)
 		self.destroy()
 
 
@@ -530,10 +539,10 @@ def openFile(*args):
 	# Test for random dictionary key in source
 	try:
 		if not "publicationName" in importSource[0]:
-			ErrorWindow(tkinter.Tk(), msg="Invalid sourcefile")
+			ErrorWindow(app, msg="Invalid sourcefile")
 			return
 	except (IndexError, TypeError, KeyError, EOFError):
-		ErrorWindow(tkinter.Tk(), msg="Invalid sourcefile")
+		ErrorWindow(app, msg="Invalid sourcefile")
 		return
 	
 	app.sourceList.allSources = importSource
@@ -543,7 +552,7 @@ def openFile(*args):
 def saveFile(*args):
 	"""Dump allSources as pickle file"""
 	if app.sourceList.allSources == []: # Nothing to save
-		ErrorWindow(tkinter.Tk(), msg="Nothing to save")
+		ErrorWindow(app, msg="Nothing to save")
 		return
 	sourceLoc = os.path.dirname(os.path.realpath(__file__)) + "\\sources"
 	if os.path.isdir(sourceLoc) == False:
@@ -595,11 +604,25 @@ def closeWindows():
 	# Ask to save current sources
 	if saveChanges() == 0:
 		return
+	"""
 	for window in ErrorWindow.ErrorWindows:
 		window.destroy()
 		ErrorWindow.ErrorWindows.remove(window)
+	"""
 	root.destroy()
 
+def globalbinds(state):
+	"""Sets global keybinds active or deactive based on input"""
+	global bindIDs
+	if state == 1:
+		bindIDs = {}
+		bindIDs["save"] = root.bind_all("<Control-s>", saveFile)
+		bindIDs["open"] = root.bind_all("<Control-o>", openFile)
+		bindIDs["addSource"] = root.bind_all("<Return>", app.sourceInput.addSource)
+	else:
+		root.unbind("<Control-s>", bindIDs["save"])
+		root.unbind("<Control-o>", bindIDs["open"])
+		root.unbind("<Return>", bindIDs["addSource"])
 
 if __name__ == "__main__":
 	root = tkinter.Tk()
@@ -607,10 +630,11 @@ if __name__ == "__main__":
 	root.rowconfigure(0, weight = 1)
 	menubar = TopMenu(root)
 	root.config(menu=menubar)
-	root.bind("<Control-s>", saveFile)
-	root.bind("<Control-o>", openFile)
+	#root.bind("<Control-s>", saveFile)
+	#root.bind("<Control-o>", openFile)
 	app = Application(root)
 	app.grid(sticky = "NSEW")
+	globalbinds(1)
 	root.title("Source Formatting")
 	root.protocol("WM_DELETE_WINDOW", closeWindows)
 	root.update()
