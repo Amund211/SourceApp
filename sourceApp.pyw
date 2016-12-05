@@ -55,12 +55,20 @@ class SourceList(tkinter.Frame):
 	
 	def copyEntries(self):
 		"""Copy entire sourcelist to clipboard"""
+		tmpSourceList = []
 		sourceListOutput = ""
 		if len(self.allSources) == 0:
 			ErrorWindow(app, msg = "List is empty")
 			return
+		
+		# Get and format sources
 		for source in self.allSources:
-			sourceListOutput += MainFormatter.formatSource(**source)["full"] + "\n"
+			tmpSourceList.append(MainFormatter.formatSource(**source)["full"])
+		
+		# Alphabetize and concatenate to output
+		for source in sorted(tmpSourceList):
+			sourceListOutput += source + "\n"
+		
 		self.clipboard_clear()
 		self.clipboard_append(sourceListOutput)
 	
@@ -394,10 +402,13 @@ class Application(tkinter.Frame):
 
 
 class ErrorWindow(tkinter.Toplevel):
-	def __init__(self, parent, msg):
+	# Created with: ErrorWindow(app, msg="Message"[, title="Title"[, sound=1]])
+	def __init__(self, parent, msg="An unknown error occurred", title="Error", sound=1):
 		tkinter.Toplevel.__init__(self, parent)
 		self.parent = parent
 		self.msg = msg
+		self.titleText = title
+		self.sound = sound
 		globalbinds(0)
 		self.protocol("WM_DELETE_WINDOW", self.close)
 		self.escapeFuncID = self.bind_all("<Escape>", self.close)
@@ -416,13 +427,14 @@ class ErrorWindow(tkinter.Toplevel):
 		self.okButton.focus()
 		#self.parent.wm_attributes("-topmost", True)
 		
-		self.title("Error")
+		self.title(self.titleText)
 		self.minsize(200, 0)
 		self.resizable(False, False)
 		self.update()
 		
 		# Play error sound
-		winsound.MessageBeep()
+		if self.sound == 1:
+			winsound.MessageBeep()
 
 		self.transient(self.parent) #set to be on top of the main window
 		self.grab_set() #hijack all commands from the parent (clicks on the main window are ignored)
@@ -507,10 +519,17 @@ class TopMenu(tkinter.Menu):
 		self.filemenu.add_separator()
 		self.filemenu.add_command(label="Exit", command=self.exit)
 		self.add_cascade(label="File", menu=self.filemenu)
+		
+		self.helpmenu = tkinter.Menu(self, tearoff=0)
+		self.helpmenu.add_command(label="About", command=about)
+		self.add_cascade(label="Help", menu=self.helpmenu)
 	
 	def exit(self):
 		closeWindows()
 
+
+def about():
+	ErrorWindow(app, msg="Remember to write the title of the publication in italic\nand to indent subsequent lines of a single source in the source list.", title="Help", sound=0)
 
 def openFile(*args):
 	"""Import pickle file to allSources"""
