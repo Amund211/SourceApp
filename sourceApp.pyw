@@ -146,6 +146,7 @@ class SourceDisplay(tkinter.Frame):
 	def __init__(self, parent):
 		tkinter.Frame.__init__(self, parent)
 		self.parent = parent
+		self.currSource = {}
 		self.initialize()
 	
 	def initialize(self):
@@ -181,6 +182,11 @@ class SourceDisplay(tkinter.Frame):
 	def setSource(self, source):
 		"""Formats given source and displays it"""
 		# Activated by SourceList.onSelect method
+		
+		if not "publicationType" in source:
+			# Invalid source
+			return
+		
 		formattedSource = MainFormatter.formatSource(**source)
 		self.source1.config(state = "normal")
 		self.source1.delete(1.0, tkinter.END)
@@ -191,6 +197,7 @@ class SourceDisplay(tkinter.Frame):
 		self.source2.delete(1.0, tkinter.END)
 		self.source2.insert("insert", formattedSource["full"])
 		self.source2.config(state = "disabled")
+		self.currSource = source
 
 
 class SourceInput(tkinter.Frame):
@@ -202,9 +209,6 @@ class SourceInput(tkinter.Frame):
 	def initialize(self):
 		self.grid()
 		self.config(borderwidth = borderwidth, relief = borderstyle)
-		
-		# Bind enter to add source
-		#self.parent.parent.bind("<Return>", self.addSource)
 		
 		# create a canvas object and a vertical scrollbar for scrolling it
 		self.vscrollbar = tkinter.Scrollbar(self)
@@ -229,7 +233,6 @@ class SourceInput(tkinter.Frame):
 		self.interior.bind('<Configure>', self._configure_interior)
 		self.canvas.bind('<Configure>', self._configure_canvas)
 		self.interior.bind("<MouseWheel>", self._on_mousewheel)
-		
 		
 		self.populate()
 	
@@ -256,25 +259,16 @@ class SourceInput(tkinter.Frame):
 				# Do not add entry widget for the formatter options (added later)
 				if k >= 3:
 					self.vars[v] = tkinter.StringVar(self)
-					#Debugging
-					#self.vars[v].set(v)
-					##########
 					self.widgets["entries"][v] = tkinter.Entry(self.interior, textvar = self.vars[v])
 					self.widgets["entries"][v].grid(column = 1, columnspan = 4, row = k+1, padx = (10, 10), pady = (10, 10), sticky = "EW")
 					self.widgets["entries"][v].bind("<MouseWheel>", self._on_mousewheel)
 				elif k == 2:
 					self.vars[v] = tkinter.StringVar(self)
-					#Debugging
-					#self.vars[v].set(self.comboboxValues[v][0])
-					##########
 					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.vars[v], values = self.comboboxValues[v], width = 15)
 					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
 
 				else:
 					self.formatterOptions[v] = tkinter.StringVar(self)
-					#Debugging
-					#self.formatterOptions[v].set(self.comboboxValues[v][0])
-					##########
 					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.formatterOptions[v], values = self.comboboxValues[v], width = 15)
 					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
 					
@@ -307,7 +301,7 @@ class SourceInput(tkinter.Frame):
 	
 	def addSource(self, *args):
 		"""Gets data from vars stored on instance and adds them as new source to SourceList.allSources and updates list"""
-		# Bound to <Return> and button through SourceInput
+		# Bound to <Return>, and to button in SourceInput
 		
 		# Get data from the stringvars, and remove empty inputs
 		outputVars = {}
@@ -425,7 +419,6 @@ class ErrorWindow(tkinter.Toplevel):
 		self.okButton = tkinter.Button(self, text = "Ok", command = self.close, width = 10)
 		self.okButton.grid(column = 0, row = 1, padx = (10, 10), pady = (10, 10))
 		self.okButton.focus()
-		#self.parent.wm_attributes("-topmost", True)
 		
 		self.title(self.titleText)
 		self.minsize(200, 0)
@@ -529,7 +522,10 @@ class TopMenu(tkinter.Menu):
 
 
 def about():
-	ErrorWindow(app, msg="Remember to write the title of the publication in italic\nand to indent subsequent lines of a single source in the source list.", title="Help", sound=0)
+	#ErrorWindow(app, msg="Remember to write the title of the publication in italic\nand to indent subsequent lines of a single source in the source list.", title="Help", sound=0)
+	
+	ErrorWindow(app, msg="""Remember to write the title of the publication in italic
+and to indent subsequent lines of a single source in the source list.""", title="Help", sound=0)
 
 def openFile(*args):
 	"""Import pickle file to allSources"""
@@ -543,7 +539,6 @@ def openFile(*args):
 	options = {}
 	options["defaultextension"] = "*.pkl" #Is this doing anything?
 	options["filetypes"] = [("Pickle files", "*.p"), ("Pickle files", "*.pkl")]
-	#options["initialfile"] = "source.pkl"
 	options["multiple"] = False
 	options["initialdir"] = sourceLoc
 	options["parent"] = root
@@ -555,9 +550,9 @@ def openFile(*args):
 	importSource = pickle.load(open(filepath, "rb"))
 	
 	# Check if valid list:
-	# Test for random dictionary key in source
+	# Test for a dictionary key in source
 	try:
-		if not "publicationName" in importSource[0]:
+		if not "publicationType" in importSource[0]:
 			ErrorWindow(app, msg="Invalid sourcefile")
 			return
 	except (IndexError, TypeError, KeyError, EOFError):
@@ -594,11 +589,6 @@ def saveFile(*args):
 
 def saveChanges():
 	"""Ask if user wants to save current sources"""
-	# Should return output based on user input:
-	# Cancel from user should cancel task that initiated save
-	# Yes should prompt to save and continue
-	# No should continue
-	# Should have quick close button
 	if app.sourceList.allSources == []:
 		return
 	if app.sourceList.allSources_bak == app.sourceList.allSources:
@@ -606,6 +596,8 @@ def saveChanges():
 		return
 	SaveChangesPrompt(app)
 	
+	# This variable is set by the SaveChangesPrompt window
+	# 1=save, 0=cancel, -1=don't save
 	if saveExitCode == 1:
 		saveFile()
 	
@@ -617,17 +609,12 @@ def updateFormatter(*args):
 		formatterKwargs[v] = app.sourceInput.formatterOptions[v].get().lower()
 	global MainFormatter
 	MainFormatter = Formatter(**formatterKwargs)
-	app.sourceList.updateList()
+	app.sourceDisplay.setSource(app.sourceDisplay.currSource)
 
 def closeWindows():
 	# Ask to save current sources
 	if saveChanges() == 0:
 		return
-	"""
-	for window in ErrorWindow.ErrorWindows:
-		window.destroy()
-		ErrorWindow.ErrorWindows.remove(window)
-	"""
 	root.destroy()
 
 def globalbinds(state):
@@ -649,8 +636,6 @@ if __name__ == "__main__":
 	root.rowconfigure(0, weight = 1)
 	menubar = TopMenu(root)
 	root.config(menu=menubar)
-	#root.bind("<Control-s>", saveFile)
-	#root.bind("<Control-o>", openFile)
 	app = Application(root)
 	app.grid(sticky = "NSEW")
 	globalbinds(1)
