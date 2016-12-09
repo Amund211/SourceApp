@@ -46,7 +46,7 @@ class Formatter():
 		self.formatStyle = formatStyle
 		self.language = language
 	
-	def formatSource(self, a1FirstName="", a1LastName="", a2FirstName="", a2LastName="", a3FirstName="", a3LastName="", pageNumberRange="", publishedYear="", publicationName="", publicationType="", publisherName="", publisherLocation="", publicationURL="", fetchedDate=""):
+	def formatSource(self, authorNames="", pageNumberRange="", publishedYear="", publicationName="", publicationType="", publisherName="", publisherLocation="", publicationURL="", fetchedDate=""):
 		"""Formats a source to the instance's standards, based on the inputs to this method"""
 		if publicationType not in self.validInputs["publicationType"]:
 			raise ValueError("Input for publicationType was invalid ({})".format(publicationType))
