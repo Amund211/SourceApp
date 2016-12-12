@@ -77,6 +77,7 @@ class Formatter():
 		# Example: fullFormat = [*templates["Template"], (("text"), (True))]
 		#
 		if self.formatStyle == "harvard":
+			"""
 			templates["AuthorNames"] = [((a1LastName + ", "), (a1LastName != "")),
 										((self._getInitials(a1FirstName) + ". "), (a1FirstName != "")),
 										(("& "), ((a2FirstName != "" or a2LastName != "") and (a3FirstName == "" and a3LastName == ""))),
@@ -85,26 +86,61 @@ class Formatter():
 										(("& "), (a3FirstName != "" or a3LastName != "")),
 										((a3LastName + ", "), (a3LastName != "")),
 										((self._getInitials(a3FirstName) + ". "), (a3FirstName != ""))]
-			
+			"""
+			templates["AuthorNames"] = [("", False)]
+			if authorNames != "":
+				tmpAuthorNames = ""
+				for number, name in enumerate(authorNames):
+					if number+1 == len(authorNames):
+						tmpAuthorNames += "& "
+					if name[1] != "":
+						tmpAuthorNames += name[1] + ", "
+					if name[0] != "":
+						tmpAuthorNames += self._getInitials(name[0]) + ". "
+				templates["AuthorNames"] = [(tmpAuthorNames, True)]
+				#templates["AuthorNames"] = (templates["AuthorNames"][:-2], True)
+			"""
 			templates["AuthorLastNames"] = [((a1LastName), (a1LastName != "")),
 											((", "), (a3LastName != "")),
 											((" & "), (a2LastName != "" and a3LastName == "")),
 											((a2LastName), (a2LastName != "")),
 											((" & "), (a3LastName != "")),
 											((a3LastName), (a3LastName != ""))]
+			"""
+			templates["AuthorLastNames"] = [("", False)]
+			if authorNames != "":
+				tmpAuthorLastNames = ""
+				if len(authorNames) >= 4:
+					for name in authorNames:
+						if name[1] != "":
+							tmpAuthorLastNames = name[1] + " et al."
+							break
+					if tmpAuthorLastNames == "":
+						tmpAuthorLastNames = authorNames[0][0] + " et al."
+					#tmpAuthorLastNames = authorNames[0][1] + " et al."
+				else:
+					for number, name in enumerate(authorNames):
+						if number+1 == len(authorNames):
+							tmpAuthorLastNames += "& "
+						if name[1] != "":
+							tmpAuthorLastNames += name[1] + ", "
+					tmpAuthorLastNames = tmpAuthorLastNames[:-2]
+				templates["AuthorLastNames"] = [(tmpAuthorLastNames, True)]
 			
-			templates["pubYear_pubName"] = [((publishedYear + ", "), (publishedYear != "" and (a1FirstName != "" or a1LastName != ""))),
+			templates["pubYear_pubName"] = [((publishedYear + ", "), (publishedYear != "" and (authorNames[0] != "" or authorNames[1] != ""))),
 											((publicationName), (publicationName != ""))]
+			
+			
 			
 			if publicationType == "book":
 				fullFormat = [*templates["AuthorNames"], *templates["pubYear_pubName"],
-							((","), (a1FirstName != "" or a1LastName != "") and (publisherLocation != "" or publisherName != "")),
+							((","), (authorNames[0][0] != "" or authorNames[0][1] != "") and (publisherLocation != "" or publisherName != "")),
 							((" "), (publicationName != "") and (publisherLocation != "" or publisherName != "")),
 							((publisherName), (publisherName != "")),
 							((", " + publisherLocation), (publisherLocation != ""))]
 				
 				shortFormat = [(("("), (True)), *templates["AuthorLastNames"],
-							((publicationName), (a1LastName == "")),
+							((publicationName), (authorNames[0][1] == "")),
 							((" " + publishedYear), (publishedYear != "")),
 							((")"), (True))]
 				
@@ -115,7 +151,7 @@ class Formatter():
 							(("[{}]".format(self._formatDate(fetchedDate))), (fetchedDate != ""))]
 				
 				shortFormat = [(("("), (True)), *templates["AuthorLastNames"],
-							((publicationName), (a1LastName == "")),
+							((publicationName), (authorNames[0][1] == "")),
 							((" " + publishedYear), (publishedYear != "")),
 							(" " + (self.languages[self.language]["noDate"]),
 							(publishedYear == "")), ((")"), (True))]
@@ -123,6 +159,7 @@ class Formatter():
 		# Concat all enabled strings to an output string
 		fullSrc = ""
 		for key, val in enumerate(fullFormat):
+			#print(fullFormat[key], key, fullFormat[key])
 			if fullFormat[key][1] == True:
 				fullSrc += str(val[0])
 		
@@ -148,8 +185,10 @@ if __name__ == "__main__":
 	
 	bookDict["publicationType"] = "book"
 	bookDict["fetchedDate"] = ""
+	bookDict["authorNames"] = [("a1FirstName", "a1LastName"), ("a2FirstName", "a2LastName"), ("a3FirstName", "a3LastName"), ("a4FirstName", "a4LastName")]
 	webpageDict["publicationType"] = "webpage"
 	webpageDict["fetchedDate"] = (1,2,2003)
+	webpageDict["authorNames"] = [("a1FirstName", "a1LastName"), ("a2FirstName", "a2LastName"), ("a3FirstName", "a3LastName"), ("a4FirstName", "a4LastName")]
 	
 	bookFormatted = formatter.formatSource(**bookDict)
 	print("Book: ")

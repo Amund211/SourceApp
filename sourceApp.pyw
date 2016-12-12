@@ -87,6 +87,9 @@ class SourceList(tkinter.Frame):
 						self.parent.sourceInput.vars[key].set(self.allSources[listIndex]["fetchedDate"][2])
 					elif key == "publicationType":
 						self.parent.sourceInput.vars[key].set(self.allSources[listIndex][key].capitalize())
+					elif key == "authorNames":
+						for itr in range(0, len(self.parent.sourceInput.vars[key])*2):
+							self.parent.sourceInput.vars[key][itr].set(self.allSources[listIndex][key][math.floor(itr/2)][itr%2])
 					else:
 						self.parent.sourceInput.vars[key].set(self.allSources[listIndex][key])
 				except (IndexError, KeyError):
@@ -124,7 +127,16 @@ class SourceList(tkinter.Frame):
 			self.displaySources.append([])
 			for kwnum, kw in enumerate(self.allSources[dictnum]):
 				if self.allSources[dictnum][kw] != "":
-					self.displaySources[dictnum].append(self.allSources[dictnum][kw])
+					if type(self.allSources[dictnum][kw]) == list:
+						# authorNames list
+						tmpAuthorNames = []
+						for nameTuple in self.allSources[dictnum][kw]:
+							if nameTuple != ("", ""):
+								# Nametuple contains data -> display in list
+								tmpAuthorNames.append(nameTuple)
+						self.displaySources[dictnum].append(tmpAuthorNames)
+					else:
+						self.displaySources[dictnum].append(self.allSources[dictnum][kw])
 
 		for dictnum in range(len(self.allSources[:])-1):
 			# Deleting duplicate entries
@@ -239,9 +251,20 @@ class SourceInput(tkinter.Frame):
 	
 	def populate(self):
 		"""Adds widgets and defines vars"""
-		self.varNames = ["formatStyle", "language", "publicationType", "authorNames", "pageNumberRange", "publishedYear", "publicationName", "publisherName", "publisherLocation", "publicationURL", "fetchedDate"]
-		self.textNames = ["Format style:", "Language:", "Publication type:", "Author names:", "Page number/range:", "Published year:", "Publication name:", "Publisher name:", "Publisher location:", "Publication URL:", "Date fetched:"]
-		self.comboboxValues = {"formatStyle" : [value.capitalize() for value in Formatter.validInputs["formatStyle"]], "language" : [value.capitalize() for value in Formatter.validInputs["language"]], "publicationType" : [value.capitalize() for value in Formatter.validInputs["publicationType"]], "fetchedDay" : list(range(32)), "fetchedMonth" : list(range(13)), "fetchedYear" : [0, *list(range(2016, 2031, 1))]}
+		self.varNames = ["formatStyle", "language", "publicationType", "authorNames",
+						"pageNumberRange", "publishedYear", "publicationName", "publisherName",
+						"publisherLocation", "publicationURL", "fetchedDate"]
+		
+		self.textNames = ["Format style:", "Language:", "Publication type:", "Author names:",
+						"Page number/range:", "Published year:", "Publication name:", "Publisher name:",
+						"Publisher location:", "Publication URL:", "Date fetched:"]
+		
+		self.comboboxValues = {"formatStyle" : [value.capitalize() for value in Formatter.validInputs["formatStyle"]],
+								"language" : [value.capitalize() for value in Formatter.validInputs["language"]],
+								"publicationType" : [value.capitalize() for value in Formatter.validInputs["publicationType"]],
+								"fetchedDay" : list(range(32)),
+								"fetchedMonth" : list(range(13)),
+								"fetchedYear" : [0, *list(range(2016, 2031, 1))]}
 		
 		if len(self.varNames) != len(self.textNames):
 			raise UserWarning("varNames and textNames table pair was not equally long. (SourceInput.varNames, {0} long; SourceInput.textNames, {1} long.)".format(len(self.varNames), len(self.textNames)))
@@ -381,10 +404,13 @@ class SourceInput(tkinter.Frame):
 		
 		# Clear input fields
 		for k, v in enumerate(self.vars):
-			if type(self.vars[v]) == type(tkinter.StringVar(self)):
+			if type(self.vars[v]) == tkinter.StringVar:
 				self.vars[v].set("")
-			elif type(self.vars[v]) == type(tkinter.IntVar(self)):
+			elif type(self.vars[v]) == tkinter.IntVar:
 				self.vars[v].set(0)
+			elif type(self.vars[v]) == list:
+				for itr in range(0, len(self.vars[v])):
+					self.vars[v][itr].set("")
 		# Add source to backend list, and update the frontend
 		self.parent.sourceList.allSources.append(outputVars)
 		self.parent.sourceList.updateList()
