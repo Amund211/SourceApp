@@ -3,8 +3,10 @@ class Formatter():
 	languages = {}
 	languages["norwegian"] = {"pageShort" : "s.", "availableFrom" : "Hentet fra: ", "noDate" : "i. d."}
 	languages["english"] = {"pageShort" : "p.", "availableFrom" : "Available from: ", "noDate" : "n. d."}
-	languages["norwegian"]["monthNames"] = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"]
-	languages["english"]["monthNames"] = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+	languages["norwegian"]["monthNames"] = ["januar", "februar", "mars", "april", "mai", "juni",
+											"juli", "august", "september", "oktober", "november", "desember"]
+	languages["english"]["monthNames"] = ["January", "February", "March", "April", "May", "June",
+											"July", "August", "September", "October", "November", "December"]
 	
 	# Valid inputs for the Formatter instance and source input.
 	validInputs = {}
@@ -28,7 +30,9 @@ class Formatter():
 				raise ValueError("Given value for day ({0}) was not valid. (Must be 1->31)".format(rawDate[0]))
 			if not 0 < int(rawDate[1]) < 13:
 				raise ValueError("Given value for day ({0}) was not valid. (Must be 1->12)".format(rawDate[1]))
-			if not type(int(rawDate[0])) == int:
+			try:
+				int(rawDate[2])
+			except ValueError:
 				raise TypeError("Given value for year ({0}) was not valid. (Must be type int)".format(rawDate[2]))
 			formattedDate = "{0} {1} {2}".format(str(rawDate[0]), self.languages[self.language]["monthNames"][rawDate[1]-1], str(rawDate[2]))
 		else:
@@ -46,7 +50,9 @@ class Formatter():
 		self.formatStyle = formatStyle
 		self.language = language
 	
-	def formatSource(self, authorNames="", pageNumberRange="", publishedYear="", publicationName="", publicationType="", publisherName="", publisherLocation="", publicationURL="", fetchedDate=""):
+	def formatSource(self, authorNames="", pageNumberRange="", publishedYear="",
+					publicationName="", publicationType="", publisherName="",
+					publisherLocation="", publicationURL="", fetchedDate=""):
 		"""Formats a source to the instance's standards, based on the inputs to this method"""
 		if publicationType not in self.validInputs["publicationType"]:
 			raise ValueError("Input for publicationType was invalid ({})".format(publicationType))
@@ -61,8 +67,8 @@ class Formatter():
 		# NB: The default value of any input is an empty string. Thereby checking if an input is defined by
 		# the user can be done as follows: (input != "")
 		#
-		# Example: ((a1LastName + ", "), (a1LastName != ""))
-		# Will add the last name of the first author followed by a comma and a space if it was given as an input
+		# Example: ((publisherName), (publisherName != ""))
+		# Will add the name of the publisher if it was given as an input
 		
 		templates = {}
 		# Templates are a way of shortening the otherwise excrutiatingly long format definitions.
@@ -74,19 +80,10 @@ class Formatter():
 		#
 		# Templates are given in the same way that the regular formats are, and are referenced by unpacking
 		# the list in the place where it should be referenced
+		# Templates can be generated through some algorithm, or created the same way the formats normally are
 		# Example: fullFormat = [*templates["Template"], (("text"), (True))]
 		#
 		if self.formatStyle == "harvard":
-			"""
-			templates["AuthorNames"] = [((a1LastName + ", "), (a1LastName != "")),
-										((self._getInitials(a1FirstName) + ". "), (a1FirstName != "")),
-										(("& "), ((a2FirstName != "" or a2LastName != "") and (a3FirstName == "" and a3LastName == ""))),
-										((a2LastName + ", "), (a2LastName != "")),
-										((self._getInitials(a2FirstName) + ". "), (a2FirstName != "")),
-										(("& "), (a3FirstName != "" or a3LastName != "")),
-										((a3LastName + ", "), (a3LastName != "")),
-										((self._getInitials(a3FirstName) + ". "), (a3FirstName != ""))]
-			"""
 			templates["AuthorNames"] = [("", False)]
 			if authorNames != "":
 				tmpAuthorNames = ""
@@ -97,27 +94,20 @@ class Formatter():
 						tmpAuthorNames += name[1] + ", "
 					if name[0] != "":
 						tmpAuthorNames += self._getInitials(name[0]) + ". "
-				templates["AuthorNames"] = [(tmpAuthorNames, True)]
-				#templates["AuthorNames"] = (templates["AuthorNames"][:-2], True)
-			"""
-			templates["AuthorLastNames"] = [((a1LastName), (a1LastName != "")),
-											((", "), (a3LastName != "")),
-											((" & "), (a2LastName != "" and a3LastName == "")),
-											((a2LastName), (a2LastName != "")),
-											((" & "), (a3LastName != "")),
-											((a3LastName), (a3LastName != ""))]
-			"""
+				templates["AuthorNames"] = [(tmpAuthorNames, authorNames != "")]
+			
 			templates["AuthorLastNames"] = [("", False)]
 			if authorNames != "":
 				tmpAuthorLastNames = ""
 				if len(authorNames) >= 4:
 					for name in authorNames:
 						if name[1] != "":
+							# Find earliest author with last name
 							tmpAuthorLastNames = name[1] + " et al."
 							break
 					if tmpAuthorLastNames == "":
+						# No last names - use first name of first author
 						tmpAuthorLastNames = authorNames[0][0] + " et al."
-					#tmpAuthorLastNames = authorNames[0][1] + " et al."
 				else:
 					for number, name in enumerate(authorNames):
 						if number+1 == len(authorNames):
@@ -125,7 +115,7 @@ class Formatter():
 						if name[1] != "":
 							tmpAuthorLastNames += name[1] + ", "
 					tmpAuthorLastNames = tmpAuthorLastNames[:-2]
-				templates["AuthorLastNames"] = [(tmpAuthorLastNames, True)]
+				templates["AuthorLastNames"] = [(tmpAuthorLastNames, authorNames != "")]
 			
 			templates["pubYear_pubName"] = [((publishedYear + ", "), (publishedYear != "" and (authorNames[0] != "" or authorNames[1] != ""))),
 											((publicationName), (publicationName != ""))]
@@ -185,10 +175,12 @@ if __name__ == "__main__":
 	
 	bookDict["publicationType"] = "book"
 	bookDict["fetchedDate"] = ""
-	bookDict["authorNames"] = [("a1FirstName", "a1LastName"), ("a2FirstName", "a2LastName"), ("a3FirstName", "a3LastName"), ("a4FirstName", "a4LastName")]
+	bookDict["authorNames"] = [("a1FirstName", "a1LastName"), ("a2FirstName", "a2LastName"),
+								("a3FirstName", "a3LastName"), ("a4FirstName", "a4LastName")]
 	webpageDict["publicationType"] = "webpage"
 	webpageDict["fetchedDate"] = (1,2,2003)
-	webpageDict["authorNames"] = [("a1FirstName", "a1LastName"), ("a2FirstName", "a2LastName"), ("a3FirstName", "a3LastName"), ("a4FirstName", "a4LastName")]
+	webpageDict["authorNames"] = [("a1FirstName", "a1LastName"), ("a2FirstName", "a2LastName"),
+								("a3FirstName", "a3LastName"), ("a4FirstName", "a4LastName")]
 	
 	bookFormatted = formatter.formatSource(**bookDict)
 	print("Book: ")

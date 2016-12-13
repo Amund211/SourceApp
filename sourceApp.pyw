@@ -214,6 +214,39 @@ class SourceDisplay(tkinter.Frame):
 
 
 class SourceInput(tkinter.Frame):
+	class AuthorNameInput(tkinter.Frame):
+		def __init__(self, parent, creator):
+			tkinter.Frame.__init__(self, parent)
+			self.parent = parent
+			self.creator = creator
+			
+			self.columnconfigure(1, weight = 1)
+			self.bind("<MouseWheel>", self.creator._on_mousewheel)
+			self.authorLabels = []
+			self.authorEntries = []
+			self.creator.vars["authorNames"] = []
+			self.initialize()
+		
+		def initialize(self):
+			for itr in range(0, 3-len(self.creator.vars["authorNames"])):
+				for nameType in ["first", "last"]:
+					self.creator.vars["authorNames"].append(tkinter.StringVar())
+					self.authorLabels.append(tkinter.Label(self, text="A. {} {} name:".format(math.floor((1+len(self.creator.vars["authorNames"]))/2), nameType.capitalize())))
+					self.authorLabels[-1].bind("<MouseWheel>", self.creator._on_mousewheel)
+					self.authorLabels[-1].grid(column = 0, row = len(self.creator.vars["authorNames"]), padx = (10, 10), pady = (10, 10))
+					
+					self.authorEntries.append(tkinter.Entry(self, textvar=self.creator.vars["authorNames"][-1]))
+					self.authorEntries[-1].grid(column = 1, row = len(self.creator.vars["authorNames"]), padx = (10, 10), pady = (10, 10), sticky = "EW")
+					self.authorEntries[-1].bind("<MouseWheel>", self.creator._on_mousewheel)
+			#self.authorEntries
+			#self
+			#self.authorLabels
+			#self.creator.vars["authorNames"]
+		
+		def addField(self):
+			pass
+	
+	
 	def __init__(self, parent, *args, **kw):
 		tkinter.Frame.__init__(self, parent, *args, **kw)			
 		self.parent = parent
@@ -276,14 +309,9 @@ class SourceInput(tkinter.Frame):
 		self.widgets = {"labels" : {}, "entries" : {}, "comboboxes" : {}}
 		for k, v in enumerate(self.varNames):
 			if v == "authorNames":
-				self.authorFrame = tkinter.Frame(self.interior)
+				#self.populateAuthors()
+				self.authorFrame = self.AuthorNameInput(parent = self.interior, creator = self)
 				self.authorFrame.grid(column = 0, columnspan = 5, row = k+1, padx = (0, 0), pady = (0, 0), sticky = "NSEW")
-				self.authorFrame.columnconfigure(1, weight = 1)
-				self.authorFrame.bind("<MouseWheel>", self._on_mousewheel)
-				self.authorLabels = []
-				self.authorEntries = []
-				self.vars["authorNames"] = []
-				self.populateAuthors()
 				
 			elif v == "fetchedDate":
 				self.vars["fetchedDay"] = tkinter.IntVar(self)
@@ -292,11 +320,16 @@ class SourceInput(tkinter.Frame):
 				self.texts[v] = self.textNames[k]
 				self.widgets["entries"][v] = tkinter.Label(self.interior, text = self.texts[v])
 				self.widgets["entries"][v].grid(column = 0, row = k+1, padx = (10, 0), pady = (10, 10))
-				self.widgets["comboboxes"]["fetchedDay"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedDay"], values = self.comboboxValues["fetchedDay"], width = 2)
+				self.widgets["comboboxes"]["fetchedDay"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedDay"],
+																		values = self.comboboxValues["fetchedDay"], width = 2)
 				self.widgets["comboboxes"]["fetchedDay"].grid(column = 1, row = k+1, padx = (0, 1), pady = (10, 10), sticky = "E")
-				self.widgets["comboboxes"]["fetchedMonth"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedMonth"], values = self.comboboxValues["fetchedMonth"], width = 2)
+				
+				self.widgets["comboboxes"]["fetchedMonth"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedMonth"],
+																		values = self.comboboxValues["fetchedMonth"], width = 2)
 				self.widgets["comboboxes"]["fetchedMonth"].grid(column = 2, row = k+1, padx = (1, 1), pady = (10, 10), sticky = "W")
-				self.widgets["comboboxes"]["fetchedYear"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedYear"], values = self.comboboxValues["fetchedYear"], width = 4)
+				
+				self.widgets["comboboxes"]["fetchedYear"] = ttk.Combobox(self.interior, textvar = self.vars["fetchedYear"],
+																		values = self.comboboxValues["fetchedYear"], width = 4)
 				self.widgets["comboboxes"]["fetchedYear"].grid(column = 3, row = k+1, padx = (1, 10), pady = (10, 10), sticky = "W")
 			
 			else:
@@ -312,12 +345,14 @@ class SourceInput(tkinter.Frame):
 					self.widgets["entries"][v].bind("<MouseWheel>", self._on_mousewheel)
 				elif k == 2:
 					self.vars[v] = tkinter.StringVar(self)
-					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.vars[v], values = self.comboboxValues[v], width = 15)
+					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.vars[v],
+																values = self.comboboxValues[v], width = 15)
 					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
 
 				else:
 					self.formatterOptions[v] = tkinter.StringVar(self)
-					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.formatterOptions[v], values = self.comboboxValues[v], width = 15)
+					self.widgets["comboboxes"][v] = ttk.Combobox(self.interior, state = "readonly", textvar = self.formatterOptions[v],
+																values = self.comboboxValues[v], width = 15)
 					self.widgets["comboboxes"][v].grid(column = 1, row = k+1, padx = (10, 10), pady = (10, 10))
 		
 					
@@ -333,24 +368,6 @@ class SourceInput(tkinter.Frame):
 		# Set trace
 		self.formatterOptions["language"].trace("w", updateFormatter)
 		self.formatterOptions["formatStyle"].trace("w", updateFormatter)
-	
-	def populateAuthors(self):
-		pass
-		for itr in range(0, 3-len(self.vars["authorNames"])):
-			for nameType in ["first", "last"]:
-				self.vars["authorNames"].append(tkinter.StringVar())
-				self.authorLabels.append(tkinter.Label(self.authorFrame, text="A. {} {} name:".format(math.floor((1+len(self.vars["authorNames"]))/2), nameType.capitalize())))
-				self.authorLabels[-1].bind("<MouseWheel>", self._on_mousewheel)
-				self.authorLabels[-1].grid(column = 0, row = len(self.vars["authorNames"]), padx = (10, 10), pady = (10, 10))
-				
-				self.authorEntries.append(tkinter.Entry(self.authorFrame, textvar=self.vars["authorNames"][-1]))
-				self.authorEntries[-1].grid(column = 1, row = len(self.vars["authorNames"]), padx = (10, 10), pady = (10, 10), sticky = "EW")
-				self.authorEntries[-1].bind("<MouseWheel>", self._on_mousewheel)
-				
-		#self.authorEntries
-		#self.authorFrame
-		#self.authorLabels
-		#self.vars["authorNames"]
 	
 	def addSource(self, *args):
 		"""Gets data from vars stored on instance and adds them as new source to SourceList.allSources and updates list"""
@@ -584,8 +601,6 @@ class TopMenu(tkinter.Menu):
 
 
 def about():
-	#ErrorWindow(app, msg="Remember to write the title of the publication in italic\nand to indent subsequent lines of a single source in the source list.", title="Help", sound=0)
-	
 	ErrorWindow(app, msg="""Remember to write the title of the publication in italic
 and to indent subsequent lines of a single source in the source list.""", title="Help", sound=0)
 
@@ -635,7 +650,7 @@ def saveFile(*args):
 		os.mkdir(sourceLoc)
 	
 	options = {}
-	options["defaultextension"] = "*.pkl" #Is this doing anything?
+	options["defaultextension"] = "*.pkl"
 	options["filetypes"] = [("Pickle files", "*.p"), ("Pickle files", "*.pkl")]
 	options["initialfile"] = "source.pkl"
 	options["confirmoverwrite"] = True
@@ -663,7 +678,7 @@ def saveChanges():
 	if saveExitCode == 1:
 		saveFile()
 	
-	return saveExitCode #1=yes, 0=cancel, -1=no
+	return saveExitCode
 
 def updateFormatter(*args):
 	formatterKwargs = {}
