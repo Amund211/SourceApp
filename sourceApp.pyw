@@ -88,7 +88,7 @@ class SourceList(tkinter.Frame):
 					elif key == "publicationType":
 						self.parent.sourceInput.vars[key].set(self.allSources[listIndex][key].capitalize())
 					elif key == "authorNames":
-						for itr in range(0, len(self.parent.sourceInput.vars[key])*2):
+						for itr in range(0, len(self.allSources[listIndex][key])*2):
 							self.parent.sourceInput.vars[key][itr].set(self.allSources[listIndex][key][math.floor(itr/2)][itr%2])
 					else:
 						self.parent.sourceInput.vars[key].set(self.allSources[listIndex][key])
@@ -195,7 +195,6 @@ class SourceDisplay(tkinter.Frame):
 	def setSource(self, source):
 		"""Formats given source and displays it"""
 		# Activated by SourceList.onSelect method
-		
 		if not "publicationType" in source:
 			# Invalid source
 			return
@@ -221,6 +220,7 @@ class SourceInput(tkinter.Frame):
 			self.creator = creator
 			
 			self.columnconfigure(1, weight = 1)
+			#self.columnconfigure(4, weight = 1)
 			self.bind("<MouseWheel>", self.creator._on_mousewheel)
 			self.authorLabels = []
 			self.authorEntries = []
@@ -228,23 +228,39 @@ class SourceInput(tkinter.Frame):
 			self.initialize()
 		
 		def initialize(self):
-			for itr in range(0, 3-len(self.creator.vars["authorNames"])):
-				for nameType in ["first", "last"]:
-					self.creator.vars["authorNames"].append(tkinter.StringVar())
-					self.authorLabels.append(tkinter.Label(self, text="A. {} {} name:".format(math.floor((1+len(self.creator.vars["authorNames"]))/2), nameType.capitalize())))
-					self.authorLabels[-1].bind("<MouseWheel>", self.creator._on_mousewheel)
-					self.authorLabels[-1].grid(column = 0, row = len(self.creator.vars["authorNames"]), padx = (10, 10), pady = (10, 10))
-					
-					self.authorEntries.append(tkinter.Entry(self, textvar=self.creator.vars["authorNames"][-1]))
-					self.authorEntries[-1].grid(column = 1, row = len(self.creator.vars["authorNames"]), padx = (10, 10), pady = (10, 10), sticky = "EW")
-					self.authorEntries[-1].bind("<MouseWheel>", self.creator._on_mousewheel)
-			#self.authorEntries
-			#self
-			#self.authorLabels
-			#self.creator.vars["authorNames"]
+			for itr in range(3):
+				self.addField()
 		
 		def addField(self):
-			pass
+			for nameType in ["first", "last"]:
+				self.creator.vars["authorNames"].append(tkinter.StringVar())
+				self.creator.vars["authorNames"][-1].trace("w", self.onEdit)
+				
+				self.authorLabels.append(tkinter.Label(self, text="A. {} {} name:".format(math.floor((1+len(self.creator.vars["authorNames"]))/2), nameType.capitalize())))
+				self.authorLabels[-1].bind("<MouseWheel>", self.creator._on_mousewheel)
+				self.authorLabels[-1].grid(column = 0, row = len(self.creator.vars["authorNames"]), padx = (24, 24), pady = (10, 10))
+				# padx customized to match rest of list
+				
+				self.authorEntries.append(tkinter.Entry(self, textvar=self.creator.vars["authorNames"][-1]))
+				self.authorEntries[-1].grid(column = 1, columnspan = 4, row = len(self.creator.vars["authorNames"]), padx = (10, 10), pady = (10, 10), sticky = "EW")
+				self.authorEntries[-1].bind("<MouseWheel>", self.creator._on_mousewheel)
+		
+		def deleteField(self):
+			for nameType in ["last", "first"]:
+				self.creator.vars["authorNames"].pop()
+				self.authorLabels[-1].destroy()
+				self.authorLabels.pop()
+				
+				self.authorEntries[-1].destroy()
+				self.authorEntries.pop()
+		
+		def onEdit(self, *args):
+			if self.creator.vars["authorNames"][-1].get() == self.creator.vars["authorNames"][-2].get() == "":
+				if len(self.creator.vars["authorNames"])/2 > 3:
+					if self.creator.vars["authorNames"][-3].get() == self.creator.vars["authorNames"][-4].get() == "":
+						self.deleteField()
+			else:
+				self.addField()
 	
 	
 	def __init__(self, parent, *args, **kw):
@@ -379,10 +395,14 @@ class SourceInput(tkinter.Frame):
 		try:
 			for k, v in enumerate(self.vars):
 				if type(self.vars[v]) == list:
+					# List authorNames
 					outputVars[v] = []
 					for itr in range(0, len(self.vars[v]), 2):
 						tmpTuple = (self.vars[v][itr].get(), self.vars[v][itr+1].get())
-						outputVars[v].append((tmpTuple))
+						if tmpTuple != ("", ""):
+							outputVars[v].append((tmpTuple))
+					if outputVars[v] == []:
+						del outputVars[v]
 				else:
 					if self.vars[v].get() != "":
 						if v == "fetchedDay":
@@ -426,8 +446,12 @@ class SourceInput(tkinter.Frame):
 			elif type(self.vars[v]) == tkinter.IntVar:
 				self.vars[v].set(0)
 			elif type(self.vars[v]) == list:
-				for itr in range(0, len(self.vars[v])):
+				for itr in range(len(self.vars[v])-1, -1, -1):
+					# Reverse order to work with deleting the vars in AuthorNameInput
 					self.vars[v][itr].set("")
+					self.canvas.xview_moveto(0)
+					self.canvas.yview_moveto(0)
+					
 		# Add source to backend list, and update the frontend
 		self.parent.sourceList.allSources.append(outputVars)
 		self.parent.sourceList.updateList()

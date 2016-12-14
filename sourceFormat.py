@@ -88,12 +88,12 @@ class Formatter():
 			if authorNames != "":
 				tmpAuthorNames = ""
 				for number, name in enumerate(authorNames):
-					if number+1 == len(authorNames):
-						tmpAuthorNames += "& "
 					if name[1] != "":
 						tmpAuthorNames += name[1] + ", "
 					if name[0] != "":
 						tmpAuthorNames += self._getInitials(name[0]) + ". "
+					if number == len(authorNames)-2:
+						tmpAuthorNames += "& "
 				templates["AuthorNames"] = [(tmpAuthorNames, authorNames != "")]
 			
 			templates["AuthorLastNames"] = [("", False)]
@@ -117,9 +117,11 @@ class Formatter():
 					tmpAuthorLastNames = tmpAuthorLastNames[:-2]
 				templates["AuthorLastNames"] = [(tmpAuthorLastNames, authorNames != "")]
 			
-			templates["pubYear_pubName"] = [((publishedYear + ", "), (publishedYear != "" and (authorNames[0] != "" or authorNames[1] != ""))),
+			if authorNames == "":
+				# Ease of use onwards
+				authorNames = [("", "")]
+			templates["pubYear_pubName"] = [((publishedYear + ", "), (publishedYear != "" and (authorNames[0][0] != "" or authorNames[0][1] != ""))),
 											((publicationName), (publicationName != ""))]
-			
 			
 			
 			if publicationType == "book":
@@ -149,7 +151,6 @@ class Formatter():
 		# Concat all enabled strings to an output string
 		fullSrc = ""
 		for key, val in enumerate(fullFormat):
-			#print(fullFormat[key], key, fullFormat[key])
 			if fullFormat[key][1] == True:
 				fullSrc += str(val[0])
 		
