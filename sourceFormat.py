@@ -4,8 +4,8 @@
 
 class Formatter():
 	languages = {}
-	languages["norwegian"] = {"pageShort": "s.", "availableFrom": "Hentet fra: ", "noDate": "i. d."}
-	languages["english"] = {"pageShort": "p.", "availableFrom": "Available from: ", "noDate": "n. d."}
+	languages["norwegian"] = {"pageShort": "s.", "availableFrom": "Hentet fra: ", "noDate": "i. d.", "others": "m. fl."}
+	languages["english"] = {"pageShort": "p.", "availableFrom": "Available from: ", "noDate": "n. d.", "others": "el al."}
 	languages["norwegian"]["monthNames"] = [
 		"januar", "februar", "mars", "april", "mai", "juni",
 		"juli", "august", "september", "oktober", "november", "desember"]
@@ -108,11 +108,11 @@ class Formatter():
 					for name in authorNames:
 						if name[1] != "":
 							# Find earliest author with last name
-							tmpAuthorLastNames = name[1] + " et al."
+							tmpAuthorLastNames = name[1] + " " + self.languages[self.language]["others"]
 							break
 					if tmpAuthorLastNames == "":
 						# No last names - use first name of first author
-						tmpAuthorLastNames = authorNames[0][0] + " et al."
+						tmpAuthorLastNames = authorNames[0][0] + " " + self.languages[self.language]["others"]
 				else:
 					for number, name in enumerate(authorNames):
 						if name[1] != "":
@@ -175,6 +175,7 @@ class Formatter():
 if __name__ == "__main__":
 	# """
 	formatStyle = {"formatStyle": "harvard", "language": "english"}
+	# formatStyle = {"formatStyle": "harvard", "language": "norwegian"}
 	formatter = Formatter(**formatStyle)
 
 	import inspect
